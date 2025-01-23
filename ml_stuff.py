@@ -1,9 +1,14 @@
 import numpy as np
+import datetime as dt
 import pandas as pd
 import sqlite3
 from flaml import AutoML
 
 df = pd.read_csv('data_dirty.csv')
+
+if len(df) < 1:
+    print("The csv does not contain any rows.")
+    quit()
 
 df.dropna()
 
@@ -23,14 +28,19 @@ for id in pitcher_ids:
     pitcher_names.append(df['player_name'][df['pitcher'].to_list().index(id)])
 
 
-df_pitchers = pd.DataFrame({
+stuff_plus = pd.DataFrame({
+    'pitcher_id' : pitcher_ids,
+    'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year
+})
+
+pitchers = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
     'pitcher_name' : pitcher_names,
 })
 
 for pt in pts:
     # df_pitchers[pt + "_avg_x_rv"] = -1
-    df_pitchers[pt + "_avg_x_rv100"] = -1
+    stuff_plus[pt + "_avg_x_rv100"] = -1
 
 #################################################
 
@@ -178,7 +188,7 @@ for l in range(len(dfs)):
     automl = AutoML()
 
     automl_settings = {
-        "time_budget" : 7200,
+        "time_budget" : 1,
         "metric" : "r2",
         "task" : "regression",
         "log_file_name" : "ml_stuff.log",
@@ -212,7 +222,7 @@ for l in range(len(dfs)):
                 p_l_avg.append(league_x_rv)
 
                 # df_pitchers[pitch_type + "_avg_x_rv"][df_pitchers[df_pitchers['pitcher_id'] == id].index] = avg_x_rv
-                df_pitchers[pitch_type + "_avg_x_rv100"][df_pitchers[df_pitchers['pitcher_id'] == id].index] = round(((avg_x_rv - league_x_rv ) / league_x_rv)+ 100)
+                stuff_plus[pitch_type + "_avg_x_rv100"][stuff_plus[stuff_plus['pitcher_id'] == id].index] = round(((avg_x_rv - league_x_rv ) / league_x_rv)+ 100)
 
 #################################################
 
@@ -225,7 +235,37 @@ for l in range(len(dfs)):
 conn = sqlite3.connect('new.db')
 c = conn.cursor()
 
-df_pitchers.to_sql('pitchers', conn, if_exists='replace', index=False)
+c.executescript("""
+CREATE TABLE IF NOT EXISTS pitchers(
+    pitcher_id INTEGER PRIMARY KEY NOT NULL,
+    pitcher_name TEXT
+);
 
+CREATE TABLE IF NOT EXISTS stuff_plus(
+    stuff_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    season INTEGER NOT NULL,
+    FF_avg_x_rv100 INTEGER NOT NULL,
+    FC_avg_x_rv100 INTEGER NOT NULL,
+    CH_avg_x_rv100 INTEGER NOT NULL,
+    FS_avg_x_rv100 INTEGER NOT NULL,
+    FO_avg_x_rv100 INTEGER NOT NULL,
+    SC_avg_x_rv100 INTEGER NOT NULL,
+    CU_avg_x_rv100 INTEGER NOT NULL,
+    KC_avg_x_rv100 INTEGER NOT NULL,
+    CS_avg_x_rv100 INTEGER NOT NULL,
+    SL_avg_x_rv100 INTEGER NOT NULL,
+    ST_avg_x_rv100 INTEGER NOT NULL,
+    SV_avg_x_rv100 INTEGER NOT NULL,
+    KN_avg_x_rv100 INTEGER NOT NULL,
+    pitcher_id INTEGER NOT NULL,
+    FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
+);
+""")
+
+conn.commit()
+
+pitchers.to_sql('pitchers', conn, if_exists='replace', index=False)
+
+stuff_plus.to_sql('stuff_plus', conn, if_exists='replace', index=True)
 
 
