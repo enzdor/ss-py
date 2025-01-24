@@ -33,6 +33,11 @@ stuff_plus = pd.DataFrame({
     'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year
 })
 
+location_plus = pd.DataFrame({
+    'pitcher_id' : pitcher_ids,
+    'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year
+})
+
 pitchers = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
     'pitcher_name' : pitcher_names,
@@ -41,6 +46,7 @@ pitchers = pd.DataFrame({
 for pt in pts:
     # df_pitchers[pt + "_avg_x_rv"] = -1
     stuff_plus[pt + "_avg_x_rv100"] = -1
+    location_plus[pt + "_avg_x_rv100"] = -1
 
 #################################################
 
@@ -83,6 +89,18 @@ df['pfx_z_2'] = [x**2 for x in df['pfx_z']]
 df['plate_x_2'] = [x**2 for x in df['plate_x']] 
 df['plate_z_2'] = [x**2 for x in df['plate_z']] 
 df['swing_miss'] = [1 if x == "swinging_strike" else 0 for x in df['description']]
+df['c00'] = [1 if (x == 0 and y == 0) else 0 for x, y in zip(df['balls'], df['strikes'])]
+df['c10'] = [1 if (x == 1 and y == 0) else 0 for x, y in zip(df['balls'], df['strikes'])]
+df['c20'] = [1 if (x == 2 and y == 0) else 0 for x, y in zip(df['balls'], df['strikes'])]
+df['c30'] = [1 if (x == 3 and y == 0) else 0 for x, y in zip(df['balls'], df['strikes'])]
+df['c01'] = [1 if (x == 0 and y == 1) else 0 for x, y in zip(df['balls'], df['strikes'])]
+df['c11'] = [1 if (x == 1 and y == 1) else 0 for x, y in zip(df['balls'], df['strikes'])]
+df['c21'] = [1 if (x == 2 and y == 1) else 0 for x, y in zip(df['balls'], df['strikes'])]
+df['c31'] = [1 if (x == 3 and y == 1) else 0 for x, y in zip(df['balls'], df['strikes'])]
+df['c02'] = [1 if (x == 0 and y == 2) else 0 for x, y in zip(df['balls'], df['strikes'])]
+df['c12'] = [1 if (x == 1 and y == 2) else 0 for x, y in zip(df['balls'], df['strikes'])]
+df['c22'] = [1 if (x == 2 and y == 2) else 0 for x, y in zip(df['balls'], df['strikes'])]
+df['c32'] = [1 if (x == 3 and y == 2) else 0 for x, y in zip(df['balls'], df['strikes'])]
 
 #################################################
 
@@ -100,7 +118,8 @@ df_f = df_f.reset_index(drop=True)
 df_o = df_o.reset_index(drop=True)
 df_b = df_b.reset_index(drop=True)
 
-dfs = [df_f, df_o, df_b]
+dfso = [df_f, df_o, df_b]
+to_calculate = ["location", "stuff"]
 
 #################################################
 
@@ -110,129 +129,145 @@ dfs = [df_f, df_o, df_b]
 
 #################################################
 
-p_l_avg = []
 
-for l in range(len(dfs)):
+for tc in to_calculate:
+    dfs = dfso
+    for l in range(len(dfs)):
 
-    regressors = []
+        regressors = []
 
-    regressors.append(dfs[l]['release_speed'].to_list())
-    regressors.append(dfs[l]['release_pos_x'].to_list())
-    regressors.append(dfs[l]['release_pos_x_2'].to_list())
-    regressors.append(dfs[l]['release_pos_y'].to_list())
-    regressors.append(dfs[l]['release_pos_y_2'].to_list())
-    regressors.append(dfs[l]['release_pos_z'].to_list())
-    regressors.append(dfs[l]['release_pos_z_2'].to_list())
-    regressors.append(dfs[l]['pfx_x'].to_list())
-    regressors.append(dfs[l]['pfx_x_2'].to_list())
-    regressors.append(dfs[l]['pfx_z'].to_list())
-    regressors.append(dfs[l]['pfx_z_2'].to_list())
-    regressors.append(dfs[l]['vx0'].to_list())
-    regressors.append(dfs[l]['vy0'].to_list())
-    regressors.append(dfs[l]['vz0'].to_list())
-    regressors.append(dfs[l]['ax'].to_list())
-    regressors.append(dfs[l]['ay'].to_list())
-    regressors.append(dfs[l]['az'].to_list())
-    regressors.append(dfs[l]['release_spin_rate'].to_list())
-    regressors.append(dfs[l]['spin_axis'].to_list())
-    regressors.append(dfs[l]['release_extension'].to_list())
+        if tc == "stuff":
+            regressors.append(dfs[l]['release_speed'].to_list())
+            regressors.append(dfs[l]['release_pos_x'].to_list())
+            regressors.append(dfs[l]['release_pos_y'].to_list())
+            regressors.append(dfs[l]['release_pos_z'].to_list())
+            regressors.append(dfs[l]['pfx_x'].to_list())
+            regressors.append(dfs[l]['pfx_z'].to_list())
+            regressors.append(dfs[l]['vx0'].to_list())
+            regressors.append(dfs[l]['vy0'].to_list())
+            regressors.append(dfs[l]['vz0'].to_list())
+            regressors.append(dfs[l]['ax'].to_list())
+            regressors.append(dfs[l]['ay'].to_list())
+            regressors.append(dfs[l]['az'].to_list())
+            regressors.append(dfs[l]['release_spin_rate'].to_list())
+            regressors.append(dfs[l]['spin_axis'].to_list())
+            regressors.append(dfs[l]['release_extension'].to_list())
+        elif tc == "location":
+            regressors.append(dfs[l]['plate_x'])
+            regressors.append(dfs[l]['plate_z'])
+            regressors.append(dfs[l]['c00'])
+            regressors.append(dfs[l]['c10'])
+            regressors.append(dfs[l]['c20'])
+            regressors.append(dfs[l]['c30'])
+            regressors.append(dfs[l]['c01'])
+            regressors.append(dfs[l]['c11'])
+            regressors.append(dfs[l]['c21'])
+            regressors.append(dfs[l]['c31'])
+            regressors.append(dfs[l]['c02'])
+            regressors.append(dfs[l]['c12'])
+            regressors.append(dfs[l]['c22'])
+            regressors.append(dfs[l]['c32'])
 
-    X = []
-    y = dfs[l]['delta_run_exp'].to_list()
+        X = []
+        y = dfs[l]['delta_run_exp'].to_list()
 
-    for i in range(len(y)):
-        obs = []
-        for x in regressors:
-            obs.append(x[i])
-        X.append(obs)
+        for i in range(len(y)):
+            obs = []
+            for x in regressors:
+                obs.append(x[i])
+            X.append(obs)
 
-#################################################
-
-
-    # drop observations with nans
-
-
-#################################################
-
-    to_drop = []
-
-    for i in np.argwhere(np.isnan(np.array(y))):
-        if i[0]+1 not in to_drop:
-            to_drop.append(i[0]+1)
-
-    for i in np.argwhere(np.isnan(np.array(X))):
-        if i[0]+1 not in to_drop:
-            to_drop.append(i[0]+1)
-
-    to_drop = list(reversed(sorted(to_drop)))
-
-    for i in to_drop:
-        X.pop(i-1)
-        y.pop(i-1)
-        category.pop(i-1)
-        dfs[l] = dfs[l].drop([i])
-
-    print("Observations dropped due to missing values:", len(to_drop))
-
-    X_train = np.array(X)
-    y_train = np.array(y)
-
-#################################################
+    #################################################
 
 
-    # automl
+        # drop observations with nans
 
 
-#################################################
+    #################################################
 
-    automl = AutoML()
+        to_drop = []
 
-    automl_settings = {
-        "time_budget" : 1,
-        "metric" : "r2",
-        "task" : "regression",
-        "log_file_name" : "ml_stuff.log",
-    }
+        for i in np.argwhere(np.isnan(np.array(y))):
+            if i[0]+1 not in to_drop:
+                to_drop.append(i[0]+1)
 
-    automl.fit(X_train, y_train, **automl_settings)
-    print(automl.model.estimator)
+        for i in np.argwhere(np.isnan(np.array(X))):
+            if i[0]+1 not in to_drop:
+                to_drop.append(i[0]+1)
 
-    # expected delta run expectancy
-    dfs[l]['x_rv'] = automl.predict(X_train)
-    dfs[l]['n_x_rv'] = (dfs[l]['x_rv'] - dfs[l]['x_rv'].mean()) / dfs[l]['x_rv'].std()
+        to_drop = list(reversed(sorted(to_drop)))
 
-#################################################
+        for i in to_drop:
+            X.pop(i-1)
+            y.pop(i-1)
+            category.pop(i-1)
+            dfs[l] = dfs[l].drop([i])
+
+        print("Observations dropped due to missing values:", len(to_drop))
+
+        X_train = np.array(X)
+        y_train = np.array(y)
+
+    #################################################
 
 
-    # calculate players' average rvs for each
-    # pitch type
+        # automl
 
 
-#################################################
+    #################################################
 
-    for id in pitcher_ids:
-        df_p = dfs[l][dfs[l]['pitcher'] == id]
+        automl = AutoML()
 
-        for pitch_type in categories_types[l]:
-            df_p_p = df_p[df_p['pitch_type'] == pitch_type]
+        automl_settings = {
+            "time_budget" : 1,
+            "metric" : "r2",
+            "task" : "regression",
+            "log_file_name" : "ml_stuff.log",
+        }
 
-            if len(df_p_p) > 0:
-                avg_x_rv = df_p_p['x_rv'].mean()
-                league_x_rv = dfs[l]['delta_run_exp'].mean()
-                p_l_avg.append(league_x_rv)
+        automl.fit(X_train, y_train, **automl_settings)
+        print(automl.model.estimator)
 
-                # df_pitchers[pitch_type + "_avg_x_rv"][df_pitchers[df_pitchers['pitcher_id'] == id].index] = avg_x_rv
-                stuff_plus[pitch_type + "_avg_x_rv100"][stuff_plus[stuff_plus['pitcher_id'] == id].index] = round(((avg_x_rv - league_x_rv ) / league_x_rv)+ 100)
+        # expected delta run expectancy
+        dfs[l]['x_rv'] = automl.predict(X_train)
+        dfs[l]['n_x_rv'] = (dfs[l]['x_rv'] - dfs[l]['x_rv'].mean()) / dfs[l]['x_rv'].std()
+
+    #################################################
+
+
+        # calculate players' average rvs for each
+        # pitch type
+
+
+    #################################################
+
+        for id in pitcher_ids:
+            df_p = dfs[l][dfs[l]['pitcher'] == id]
+
+            for pitch_type in categories_types[l]:
+                df_p_p = df_p[df_p['pitch_type'] == pitch_type]
+
+                if len(df_p_p) > 0:
+                    avg_x_rv = df_p_p['x_rv'].mean()
+                    league_x_rv = dfs[l]['delta_run_exp'].mean()
+
+                    # df_pitchers[pitch_type + "_avg_x_rv"][df_pitchers[df_pitchers['pitcher_id'] == id].index] = avg_x_rv
+                    if tc == "stuff":
+                        stuff_plus[pitch_type + "_avg_x_rv100"][stuff_plus[stuff_plus['pitcher_id'] == id].index] = round(((avg_x_rv - league_x_rv ) / league_x_rv)+ 100)
+                    elif tc == "location":
+                        location_plus[pitch_type + "_avg_x_rv100"][location_plus[location_plus['pitcher_id'] == id].index] = round(((avg_x_rv - league_x_rv ) / league_x_rv)+ 100)
 
 #################################################
 
 
     # transfer results to sqlite db
+    # new for production and test for dev
 
 
 #################################################
 
-conn = sqlite3.connect('new.db')
+# conn = sqlite3.connect('new.db')
+conn = sqlite3.connect('test.db')
 c = conn.cursor()
 
 c.executescript("""
@@ -260,12 +295,32 @@ CREATE TABLE IF NOT EXISTS stuff_plus(
     pitcher_id INTEGER NOT NULL,
     FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
 );
+
+CREATE TABLE IF NOT EXISTS location_plus(
+    stuff_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    season INTEGER NOT NULL,
+    FF_avg_x_rv100 INTEGER NOT NULL,
+    FC_avg_x_rv100 INTEGER NOT NULL,
+    CH_avg_x_rv100 INTEGER NOT NULL,
+    FS_avg_x_rv100 INTEGER NOT NULL,
+    FO_avg_x_rv100 INTEGER NOT NULL,
+    SC_avg_x_rv100 INTEGER NOT NULL,
+    CU_avg_x_rv100 INTEGER NOT NULL,
+    KC_avg_x_rv100 INTEGER NOT NULL,
+    CS_avg_x_rv100 INTEGER NOT NULL,
+    SL_avg_x_rv100 INTEGER NOT NULL,
+    ST_avg_x_rv100 INTEGER NOT NULL,
+    SV_avg_x_rv100 INTEGER NOT NULL,
+    KN_avg_x_rv100 INTEGER NOT NULL,
+    pitcher_id INTEGER NOT NULL,
+    FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
+);
 """)
 
 conn.commit()
 
 pitchers.to_sql('pitchers', conn, if_exists='replace', index=False)
-
+location_plus.to_sql('location_plus', conn, if_exists='replace', index=True)
 stuff_plus.to_sql('stuff_plus', conn, if_exists='replace', index=True)
 
 
