@@ -10,8 +10,6 @@ if len(df) < 1:
     print("The csv does not contain any rows.")
     quit()
 
-df.dropna()
-
 #################################################
 
 
@@ -27,13 +25,17 @@ pts = ["FF", "SI", "FC", "CH", "FS", "FO", "SC", "CU", "KC", "CS", "SL", "ST", "
 for id in pitcher_ids:
     pitcher_names.append(df['player_name'][df['pitcher'].to_list().index(id)])
 
-
 stuff_plus = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
     'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year
 })
 
 location_plus = pd.DataFrame({
+    'pitcher_id' : pitcher_ids,
+    'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year
+})
+
+pitching_plus = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
     'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year
 })
@@ -46,6 +48,7 @@ pitchers = pd.DataFrame({
 for pt in pts:
     # df_pitchers[pt + "_avg_x_rv"] = -1
     stuff_plus[pt + "_avg_x_rv100"] = -1
+    pitching_plus[pt + "_avg_x_rv100"] = -1
     location_plus[pt + "_avg_x_rv100"] = -1
 
 #################################################
@@ -114,12 +117,12 @@ df_f = df[df['category'] == "fastball"]
 df_o = df[df['category'] == "offspeed"]
 df_b = df[df['category'] == "breaking_ball"]
 
-df_f = df_f.reset_index(drop=True)
-df_o = df_o.reset_index(drop=True)
-df_b = df_b.reset_index(drop=True)
+df_f = df_f.reset_index()
+df_o = df_o.reset_index()
+df_b = df_b.reset_index()
 
-dfso = [df_f, df_o, df_b]
-to_calculate = ["location", "stuff"]
+df_groups = [df_f, df_o, df_b]
+to_calculate = ["pitching", "location", "stuff"]
 
 #################################################
 
@@ -129,14 +132,13 @@ to_calculate = ["location", "stuff"]
 
 #################################################
 
-
 for tc in to_calculate:
-    dfs = dfso
+    dfs = df_groups
     for l in range(len(dfs)):
 
         regressors = []
 
-        if tc == "stuff":
+        if tc == "stuff" or tc == "pitching":
             regressors.append(dfs[l]['release_speed'].to_list())
             regressors.append(dfs[l]['release_pos_x'].to_list())
             regressors.append(dfs[l]['release_pos_y'].to_list())
@@ -152,24 +154,24 @@ for tc in to_calculate:
             regressors.append(dfs[l]['release_spin_rate'].to_list())
             regressors.append(dfs[l]['spin_axis'].to_list())
             regressors.append(dfs[l]['release_extension'].to_list())
-        elif tc == "location":
-            regressors.append(dfs[l]['plate_x'])
-            regressors.append(dfs[l]['plate_z'])
-            regressors.append(dfs[l]['c00'])
-            regressors.append(dfs[l]['c10'])
-            regressors.append(dfs[l]['c20'])
-            regressors.append(dfs[l]['c30'])
-            regressors.append(dfs[l]['c01'])
-            regressors.append(dfs[l]['c11'])
-            regressors.append(dfs[l]['c21'])
-            regressors.append(dfs[l]['c31'])
-            regressors.append(dfs[l]['c02'])
-            regressors.append(dfs[l]['c12'])
-            regressors.append(dfs[l]['c22'])
-            regressors.append(dfs[l]['c32'])
+        elif tc == "location" or tc == "pitching":
+            regressors.append(dfs[l]['plate_x'].to_list())
+            regressors.append(dfs[l]['plate_z'].to_list())
+            regressors.append(dfs[l]['c00'].to_list())
+            regressors.append(dfs[l]['c10'].to_list())
+            regressors.append(dfs[l]['c20'].to_list())
+            regressors.append(dfs[l]['c30'].to_list())
+            regressors.append(dfs[l]['c01'].to_list())
+            regressors.append(dfs[l]['c11'].to_list())
+            regressors.append(dfs[l]['c21'].to_list())
+            regressors.append(dfs[l]['c31'].to_list())
+            regressors.append(dfs[l]['c02'].to_list())
+            regressors.append(dfs[l]['c12'].to_list())
+            regressors.append(dfs[l]['c22'].to_list())
+            regressors.append(dfs[l]['c32'].to_list())
 
         X = []
-        y = dfs[l]['delta_run_exp'].to_list()
+        y = dfs[l]['delta_run_exp']
 
         for i in range(len(y)):
             obs = []
@@ -188,20 +190,20 @@ for tc in to_calculate:
         to_drop = []
 
         for i in np.argwhere(np.isnan(np.array(y))):
-            if i[0]+1 not in to_drop:
-                to_drop.append(i[0]+1)
+            if i[0] not in to_drop:
+                to_drop.append(i[0])
 
         for i in np.argwhere(np.isnan(np.array(X))):
-            if i[0]+1 not in to_drop:
-                to_drop.append(i[0]+1)
+            if i[0] not in to_drop:
+                to_drop.append(i[0])
 
         to_drop = list(reversed(sorted(to_drop)))
 
         for i in to_drop:
-            X.pop(i-1)
-            y.pop(i-1)
-            category.pop(i-1)
-            dfs[l] = dfs[l].drop([i])
+            X.pop(i)
+            y.pop(i)
+            category.pop(i)
+            dfs[l] = dfs[l].drop(i)
 
         print("Observations dropped due to missing values:", len(to_drop))
 
@@ -256,6 +258,8 @@ for tc in to_calculate:
                         stuff_plus[pitch_type + "_avg_x_rv100"][stuff_plus[stuff_plus['pitcher_id'] == id].index] = round(((avg_x_rv - league_x_rv ) / league_x_rv)+ 100)
                     elif tc == "location":
                         location_plus[pitch_type + "_avg_x_rv100"][location_plus[location_plus['pitcher_id'] == id].index] = round(((avg_x_rv - league_x_rv ) / league_x_rv)+ 100)
+                    elif tc == "pitching":
+                        pitching_plus[pitch_type + "_avg_x_rv100"][pitching_plus[pitching_plus['pitcher_id'] == id].index] = round(((avg_x_rv - league_x_rv ) / league_x_rv)+ 100)
 
 #################################################
 
@@ -315,6 +319,27 @@ CREATE TABLE IF NOT EXISTS location_plus(
     pitcher_id INTEGER NOT NULL,
     FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
 );
+
+CREATE TABLE IF NOT EXISTS pitching_plus(
+    stuff_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    season INTEGER NOT NULL,
+    FF_avg_x_rv100 INTEGER NOT NULL,
+    FC_avg_x_rv100 INTEGER NOT NULL,
+    CH_avg_x_rv100 INTEGER NOT NULL,
+    FS_avg_x_rv100 INTEGER NOT NULL,
+    FO_avg_x_rv100 INTEGER NOT NULL,
+    SC_avg_x_rv100 INTEGER NOT NULL,
+    CU_avg_x_rv100 INTEGER NOT NULL,
+    KC_avg_x_rv100 INTEGER NOT NULL,
+    CS_avg_x_rv100 INTEGER NOT NULL,
+    SL_avg_x_rv100 INTEGER NOT NULL,
+    ST_avg_x_rv100 INTEGER NOT NULL,
+    SV_avg_x_rv100 INTEGER NOT NULL,
+    KN_avg_x_rv100 INTEGER NOT NULL,
+    pitcher_id INTEGER NOT NULL,
+    FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
+);
+
 """)
 
 conn.commit()
