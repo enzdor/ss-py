@@ -138,7 +138,7 @@ for tc in to_calculate:
 
         regressors = []
 
-        if tc == "stuff" or tc == "pitching":
+        if tc == "stuff":
             regressors.append(dfs[l]['release_speed'].to_list())
             regressors.append(dfs[l]['release_pos_x'].to_list())
             regressors.append(dfs[l]['release_pos_y'].to_list())
@@ -154,7 +154,37 @@ for tc in to_calculate:
             regressors.append(dfs[l]['release_spin_rate'].to_list())
             regressors.append(dfs[l]['spin_axis'].to_list())
             regressors.append(dfs[l]['release_extension'].to_list())
-        elif tc == "location" or tc == "pitching":
+        elif tc == "location":
+            regressors.append(dfs[l]['plate_x'].to_list())
+            regressors.append(dfs[l]['plate_z'].to_list())
+            regressors.append(dfs[l]['c00'].to_list())
+            regressors.append(dfs[l]['c10'].to_list())
+            regressors.append(dfs[l]['c20'].to_list())
+            regressors.append(dfs[l]['c30'].to_list())
+            regressors.append(dfs[l]['c01'].to_list())
+            regressors.append(dfs[l]['c11'].to_list())
+            regressors.append(dfs[l]['c21'].to_list())
+            regressors.append(dfs[l]['c31'].to_list())
+            regressors.append(dfs[l]['c02'].to_list())
+            regressors.append(dfs[l]['c12'].to_list())
+            regressors.append(dfs[l]['c22'].to_list())
+            regressors.append(dfs[l]['c32'].to_list())
+        elif tc == "pitching":
+            regressors.append(dfs[l]['release_speed'].to_list())
+            regressors.append(dfs[l]['release_pos_x'].to_list())
+            regressors.append(dfs[l]['release_pos_y'].to_list())
+            regressors.append(dfs[l]['release_pos_z'].to_list())
+            regressors.append(dfs[l]['pfx_x'].to_list())
+            regressors.append(dfs[l]['pfx_z'].to_list())
+            regressors.append(dfs[l]['vx0'].to_list())
+            regressors.append(dfs[l]['vy0'].to_list())
+            regressors.append(dfs[l]['vz0'].to_list())
+            regressors.append(dfs[l]['ax'].to_list())
+            regressors.append(dfs[l]['ay'].to_list())
+            regressors.append(dfs[l]['az'].to_list())
+            regressors.append(dfs[l]['release_spin_rate'].to_list())
+            regressors.append(dfs[l]['spin_axis'].to_list())
+            regressors.append(dfs[l]['release_extension'].to_list())
             regressors.append(dfs[l]['plate_x'].to_list())
             regressors.append(dfs[l]['plate_z'].to_list())
             regressors.append(dfs[l]['c00'].to_list())
@@ -218,10 +248,11 @@ for tc in to_calculate:
 
     #################################################
 
+
         automl = AutoML()
 
         automl_settings = {
-            "time_budget" : 1,
+            "time_budget" : 10,
             "metric" : "r2",
             "task" : "regression",
             "log_file_name" : "ml_stuff.log",
@@ -347,5 +378,6 @@ conn.commit()
 pitchers.to_sql('pitchers', conn, if_exists='replace', index=False)
 location_plus.to_sql('location_plus', conn, if_exists='replace', index=True)
 stuff_plus.to_sql('stuff_plus', conn, if_exists='replace', index=True)
+pitching_plus.to_sql('pitching_plus', conn, if_exists='replace', index=True)
 
 
