@@ -1,0 +1,100 @@
+
+pitching
+fastball
+Observations dropped due to missing values:157
+RandomForestRegressor(max_features=np.float64(1.0), max_leaf_nodes=4,
+                      n_estimators=1, n_jobs=-1, random_state=12032022)
+{'n_estimators': 1, 'max_features': np.float64(1.0), 'max_leaves': 4}
+0.9760293338203637
+{'lgbm': 0.9813351964551896, 'rf': 0.9760293338203637, 'xgboost': 0.9824822177948187, 'extra_tree': 0.9847773054551912, 'xgb_limitdepth': inf, 'sgd': 1.0029756129320648}
+(0.9760293338203637, {'pred_time': 2.3108990633648665e-06})
+offspeed
+Observations dropped due to missing values:52
+SGDRegressor(alpha=np.float64(0.0001), learning_rate=np.str_('optimal'),
+             loss=np.str_('huber'), penalty=np.str_('l1'), tol=0.0001)
+{'penalty': np.str_('l1'), 'alpha': np.float64(0.0001), 'l1_ratio': np.float64(0.1500000000000002), 'epsilon': np.float64(0.04721809031174382), 'learning_rate': np.str_('optimal'), 'eta0': np.float64(0.010000000000000021), 'power_t': np.float64(0.25), 'average': False, 'loss': np.str_('huber')}
+1.0000073221071306
+{'lgbm': 1.0015658689030162, 'rf': inf, 'xgboost': inf, 'extra_tree': inf, 'xgb_limitdepth': inf, 'sgd': 1.0000073221071306}
+(1.0000073221071306, {'pred_time': 2.7044495539878733e-06})
+breaking_ball
+Observations dropped due to missing values:96
+ExtraTreesRegressor(max_features=np.float64(0.9586055955836026),
+                    max_leaf_nodes=13, n_estimators=4, n_jobs=-1,
+                    random_state=12032022)
+{'n_estimators': 4, 'max_features': np.float64(0.9586055955836026), 'max_leaves': 13}
+0.9803595707448868
+{'lgbm': 0.9844913984511642, 'rf': 0.982999320339742, 'xgboost': 0.9817523261880254, 'extra_tree': 0.9803595707448868, 'xgb_limitdepth': 0.9959004873132437, 'sgd': 1.002070814928172}
+(0.9803595707448868, {'pred_time': 1.7386285503905022e-05})
+
+location
+fastball
+Observations dropped due to missing values:0
+LGBMRegressor(colsample_bytree=np.float64(0.9038613725964871),
+              learning_rate=np.float64(0.41503625524940313), max_bin=511,
+              min_child_samples=17, n_estimators=12, n_jobs=-1, num_leaves=21,
+              reg_alpha=np.float64(0.043699847553342254),
+              reg_lambda=np.float64(44.540285112057504), verbose=-1)
+{'n_estimators': 12, 'num_leaves': 21, 'min_child_samples': 17, 'learning_rate': np.float64(0.41503625524940313), 'log_max_bin': 9, 'colsample_bytree': np.float64(0.9038613725964871), 'reg_alpha': np.float64(0.043699847553342254), 'reg_lambda': np.float64(44.540285112057504)}
+0.9688512952940649
+{'lgbm': 0.9688512952940649, 'rf': 0.9705373997214573, 'xgboost': 0.9802688955981813, 'extra_tree': 0.9866546720334043, 'xgb_limitdepth': 0.9909256372572915, 'sgd': 0.991673510723097}
+(0.9688512952940649, {'pred_time': 1.2466318556200047e-06})
+offspeed
+Observations dropped due to missing values:0
+XGBRegressor(base_score=None, booster=None, callbacks=[], colsample_bylevel=1.0,
+             colsample_bynode=None, colsample_bytree=1.0, device=None,
+             early_stopping_rounds=None, enable_categorical=False,
+             eval_metric=None, feature_types=None, gamma=None,
+             grow_policy='lossguide', importance_type=None,
+             interaction_constraints=None,
+             learning_rate=np.float64(0.25912534572860507), max_bin=None,
+             max_cat_threshold=None, max_cat_to_onehot=None,
+             max_delta_step=None, max_depth=0, max_leaves=4,
+             min_child_weight=np.float64(0.26208115308159446), missing=nan,
+             monotone_constraints=None, multi_strategy=None, n_estimators=4,
+             n_jobs=-1, num_parallel_tree=None, random_state=None, ...)
+{'n_estimators': 4, 'max_leaves': 4, 'min_child_weight': np.float64(0.26208115308159446), 'learning_rate': np.float64(0.25912534572860507), 'subsample': np.float64(0.9266743941610592), 'colsample_bylevel': 1.0, 'colsample_bytree': 1.0, 'reg_alpha': np.float64(0.0013933617380144255), 'reg_lambda': np.float64(0.18096917948292954)}
+0.9994268876558552
+{'lgbm': 1.0005959416985581, 'rf': 1.0051326559093052, 'xgboost': 0.9994268876558552, 'extra_tree': 1.001434432958137, 'xgb_limitdepth': inf, 'sgd': 1.008190986244364}
+(0.9994268876558552, {'pred_time': 2.8365583562139256e-06})
+breaking_ball
+Observations dropped due to missing values:0
+LGBMRegressor(colsample_bytree=np.float64(0.9019070144825116),
+              learning_rate=np.float64(0.2798674441105101), max_bin=63,
+              min_child_samples=7, n_estimators=5, n_jobs=-1, num_leaves=5,
+              reg_alpha=0.0009765625,
+              reg_lambda=np.float64(0.09189114905095784), verbose=-1)
+{'n_estimators': 5, 'num_leaves': 5, 'min_child_samples': 7, 'learning_rate': np.float64(0.2798674441105101), 'log_max_bin': 6, 'colsample_bytree': np.float64(0.9019070144825116), 'reg_alpha': 0.0009765625, 'reg_lambda': np.float64(0.09189114905095784)}
+0.9783657597961949
+{'lgbm': 0.9783657597961949, 'rf': 0.9831537009583436, 'xgboost': 0.9813706339798288, 'extra_tree': 0.9785311146193395, 'xgb_limitdepth': inf, 'sgd': 0.9978544809628761}
+(0.9783657597961949, {'pred_time': 1.633886116832944e-06})
+
+stuff
+fastball
+Observations dropped due to missing values:0
+LGBMRegressor(learning_rate=np.float64(0.26770501231052046), max_bin=127,
+              min_child_samples=12, n_estimators=4, n_jobs=-1, num_leaves=4,
+              reg_alpha=np.float64(0.001348364934537134),
+              reg_lambda=np.float64(1.4442580148221913), verbose=-1)
+{'n_estimators': 4, 'num_leaves': 4, 'min_child_samples': 12, 'learning_rate': np.float64(0.26770501231052046), 'log_max_bin': 7, 'colsample_bytree': 1.0, 'reg_alpha': np.float64(0.001348364934537134), 'reg_lambda': np.float64(1.4442580148221913)}
+0.9968481964494622
+{'lgbm': 0.9968481964494622, 'rf': 1.0057649435179017, 'xgboost': 0.9989881630029166, 'extra_tree': 1.0001569715852343, 'xgb_limitdepth': inf, 'sgd': 1.0003213356330698}
+(0.9968481964494622, {'pred_time': 1.0691908638661016e-06})
+offspeed
+Observations dropped due to missing values:0
+SGDRegressor(alpha=np.float64(0.01447201223894602),
+             eta0=np.float64(0.0016635318417085694),
+             l1_ratio=0.9999999999999999, learning_rate=np.str_('constant'),
+             loss=np.str_('squared_error'), penalty=np.str_('elasticnet'),
+             tol=0.0001)
+{'penalty': np.str_('elasticnet'), 'alpha': np.float64(0.01447201223894602), 'l1_ratio': 0.9999999999999999, 'epsilon': np.float64(0.00887084190528975), 'learning_rate': np.str_('constant'), 'eta0': np.float64(0.0016635318417085694), 'power_t': np.float64(0.2939433444100242), 'average': False, 'loss': np.str_('squared_error')}
+1.0000346853062254
+{'lgbm': 1.0020813616927322, 'rf': 1.0094406748892493, 'xgboost': 1.0017735190632622, 'extra_tree': 1.002537181448524, 'xgb_limitdepth': inf, 'sgd': 1.0000346853062254}
+(1.0000346853062254, {'pred_time': 2.0203305714165987e-06})
+breaking_ball
+Observations dropped due to missing values:0
+ExtraTreesRegressor(max_features=np.float64(1.0), max_leaf_nodes=4,
+                    n_estimators=4, n_jobs=-1, random_state=12032022)
+{'n_estimators': 4, 'max_features': np.float64(1.0), 'max_leaves': 4}
+0.9954612976087328
+{'lgbm': 0.9963727577466066, 'rf': 1.0073118169965103, 'xgboost': 0.9981252364475253, 'extra_tree': 0.9954612976087328, 'xgb_limitdepth': 1.0040384658540664, 'sgd': 1.0037299465500449}
+(0.9954612976087328, {'pred_time': 1.685942836742305e-05})

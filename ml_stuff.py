@@ -2,13 +2,61 @@ import numpy as np
 import datetime as dt
 import pandas as pd
 import sqlite3
+import sys
+import argparse
 from flaml import AutoML
 
-df = pd.read_csv('data_dirty.csv')
+#################################################
+
+
+    # parsing flags and opening csv
+
+
+#################################################
+
+parser = argparse.ArgumentParser(description="""
+        usage: python ml_stuff.py infile.csv [-h] [-odb data.db]
+               [-osum sum.txt]
+
+        Script to calculate stuff, location and pitching plus from
+        baseball savant data. The input data should in csv format.
+        The output is a sqlite db containing the resulting stats
+        for each pitcher included in the original csv.
+
+""")
+
+parser.add_argument("input_file_path")
+parser.add_argument("-odb", "--outfile-db", dest="outfile_db", default="important.db", help="""
+        The path for the outfile, the sqlite db with the results.
+""")
+parser.add_argument("-osum", "--outfile-summary", dest="outfile_summary", default="important.txt", help="""
+        The path for the summary, a text file.
+""")
+
+args = parser.parse_args()
+
+if len(sys.argv) < 2:
+    print("""
+    There was no path provided for the baseball savant data.
+    Run 
+          python ml_stuff.py path_to_bs_data.csv
+    or
+          python ml_stuff.py --help
+          """)
+    quit()
+
+if len(args.input_file_path) < 1:
+    print("There was no path provided for the baseball savant data.")
+    quit()
+
+df = pd.read_csv(args.input_file_path)
 
 if len(df) < 1:
     print("The csv does not contain any rows.")
     quit()
+
+# string for the final summary file
+summary_s = ""
 
 #################################################
 
@@ -27,17 +75,23 @@ for id in pitcher_ids:
 
 stuff_plus = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
-    'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year
+    'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year,
+    'arsenal_avg' : 0,
+    'N': 0,
 })
 
 location_plus = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
-    'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year
+    'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year,
+    'arsenal_avg' : 0,
+    'N': 0,
 })
 
 pitching_plus = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
-    'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year
+    'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year,
+    'arsenal_avg' : 0,
+    'N': 0,
 })
 
 pitchers = pd.DataFrame({
@@ -50,6 +104,11 @@ for pt in pts:
     stuff_plus[pt + "_avg_x_rv100"] = -1
     pitching_plus[pt + "_avg_x_rv100"] = -1
     location_plus[pt + "_avg_x_rv100"] = -1
+
+    # to calculate arsenal avg later
+    stuff_plus[pt + "_n"] = 0
+    pitching_plus[pt + "_n"] = 0
+    location_plus[pt + "_n"] = 0
 
 #################################################
 
@@ -133,8 +192,11 @@ to_calculate = ["pitching", "location", "stuff"]
 #################################################
 
 for tc in to_calculate:
+    summary_s += ("\n" + tc + "\n")
     dfs = df_groups
+
     for l in range(len(dfs)):
+        summary_s += (categories[l] + "\n")
 
         regressors = []
 
@@ -235,7 +297,7 @@ for tc in to_calculate:
             category.pop(i)
             dfs[l] = dfs[l].drop(i)
 
-        print("Observations dropped due to missing values:", len(to_drop))
+        summary_s += ("Observations dropped due to missing values:" + str(len(to_drop)) + "\n")
 
         X_train = np.array(X)
         y_train = np.array(y)
@@ -252,14 +314,18 @@ for tc in to_calculate:
         automl = AutoML()
 
         automl_settings = {
-            "time_budget" : 10,
+            "time_budget" : 1,
             "metric" : "r2",
             "task" : "regression",
             "log_file_name" : "ml_stuff.log",
         }
 
         automl.fit(X_train, y_train, **automl_settings)
-        print(automl.model.estimator)
+        summary_s += str(automl.model.estimator) + "\n"
+        summary_s += str(automl.best_config) + "\n"
+        summary_s += "r2: " + str(automl.best_loss) + " - 1\n"
+        summary_s += str(automl.best_loss_per_estimator) + "\n"
+        summary_s += str(automl.metrics_for_best_config) + "\n"
 
         # expected delta run expectancy
         dfs[l]['x_rv'] = automl.predict(X_train)
@@ -283,14 +349,48 @@ for tc in to_calculate:
                 if len(df_p_p) > 0:
                     avg_x_rv = df_p_p['x_rv'].mean()
                     league_x_rv = dfs[l]['delta_run_exp'].mean()
+                    avg_x_rv_v_league = round((avg_x_rv - league_x_rv ) / league_x_rv) + 100
 
-                    # df_pitchers[pitch_type + "_avg_x_rv"][df_pitchers[df_pitchers['pitcher_id'] == id].index] = avg_x_rv
-                    if tc == "stuff":
-                        stuff_plus[pitch_type + "_avg_x_rv100"][stuff_plus[stuff_plus['pitcher_id'] == id].index] = round(((avg_x_rv - league_x_rv ) / league_x_rv)+ 100)
-                    elif tc == "location":
-                        location_plus[pitch_type + "_avg_x_rv100"][location_plus[location_plus['pitcher_id'] == id].index] = round(((avg_x_rv - league_x_rv ) / league_x_rv)+ 100)
-                    elif tc == "pitching":
-                        pitching_plus[pitch_type + "_avg_x_rv100"][pitching_plus[pitching_plus['pitcher_id'] == id].index] = round(((avg_x_rv - league_x_rv ) / league_x_rv)+ 100)
+                    # globals mambojambo is for each of stuff location and pitching
+                    globals()[tc + '_plus'][pitch_type + "_avg_x_rv100"] \
+                    [globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id].index] \
+                    = avg_x_rv_v_league
+
+                    globals()[tc + '_plus'][pitch_type + "_n"] \
+                    [globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id].index] \
+                    = len(df_p_p)
+
+                    globals()[tc + '_plus']["N"] \
+                    [globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id].index] \
+                    += len(df_p_p)
+
+#################################################
+
+
+    # calculate arsenal averages
+
+
+#################################################
+
+    for id in pitcher_ids:
+        avg_acc = 0
+
+        for pt in pts:
+            avg_acc += globals()[tc + '_plus'][pt + '_avg_x_rv100'] \
+                    [globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id].index] \
+                    * globals()[tc + '_plus'][pt + '_n'][globals()[tc + '_plus'] \
+                    [globals()[tc + '_plus']['pitcher_id'] == id].index] \
+                    / globals()[tc + '_plus']["N"][globals()[tc + '_plus'] \
+                    [globals()[tc + '_plus']['pitcher_id'] == id].index] \
+
+        globals()[tc + '_plus']['arsenal_avg'] \
+        [globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id].index] \
+        = round(avg_acc)
+
+    for pt in pts:
+        globals()[tc + '_plus'].drop([pt + '_n'], axis=1, inplace=True)
+
+    globals()[tc + '_plus'].drop(['N'], axis=1, inplace=True)
 
 #################################################
 
@@ -302,7 +402,7 @@ for tc in to_calculate:
 #################################################
 
 # conn = sqlite3.connect('new.db')
-conn = sqlite3.connect('test.db')
+conn = sqlite3.connect(args.outfile_db)
 c = conn.cursor()
 
 c.executescript("""
@@ -327,6 +427,7 @@ CREATE TABLE IF NOT EXISTS stuff_plus(
     ST_avg_x_rv100 INTEGER NOT NULL,
     SV_avg_x_rv100 INTEGER NOT NULL,
     KN_avg_x_rv100 INTEGER NOT NULL,
+    arsenal_avg INTEGER NOT NULL,
     pitcher_id INTEGER NOT NULL,
     FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
 );
@@ -347,6 +448,7 @@ CREATE TABLE IF NOT EXISTS location_plus(
     ST_avg_x_rv100 INTEGER NOT NULL,
     SV_avg_x_rv100 INTEGER NOT NULL,
     KN_avg_x_rv100 INTEGER NOT NULL,
+    arsenal_avg INTEGER NOT NULL,
     pitcher_id INTEGER NOT NULL,
     FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
 );
@@ -367,6 +469,7 @@ CREATE TABLE IF NOT EXISTS pitching_plus(
     ST_avg_x_rv100 INTEGER NOT NULL,
     SV_avg_x_rv100 INTEGER NOT NULL,
     KN_avg_x_rv100 INTEGER NOT NULL,
+    arsenal_avg INTEGER NOT NULL,
     pitcher_id INTEGER NOT NULL,
     FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
 );
@@ -379,5 +482,8 @@ pitchers.to_sql('pitchers', conn, if_exists='replace', index=False)
 location_plus.to_sql('location_plus', conn, if_exists='replace', index=True)
 stuff_plus.to_sql('stuff_plus', conn, if_exists='replace', index=True)
 pitching_plus.to_sql('pitching_plus', conn, if_exists='replace', index=True)
+
+with open(args.outfile_summary, "w") as text_file:
+    text_file.write(summary_s)
 
 
