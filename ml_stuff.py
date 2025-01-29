@@ -351,18 +351,16 @@ for tc in to_calculate:
                     league_x_rv = dfs[l]['delta_run_exp'].mean()
                     avg_x_rv_v_league = round((avg_x_rv - league_x_rv ) / league_x_rv) + 100
 
-                    # globals mambojambo is for each of stuff location and pitching
-                    globals()[tc + '_plus'][pitch_type + "_avg_x_rv100"] \
-                    [globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id].index] \
-                    = avg_x_rv_v_league
+                    # globals mambojambo is means the following
+                    # globals()[dataframe name].loc[index, column] = expression
+                    globals()[tc + '_plus'].loc[globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id] \
+                            .index, pitch_type + "_avg_x_rv100"] = avg_x_rv_v_league
 
-                    globals()[tc + '_plus'][pitch_type + "_n"] \
-                    [globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id].index] \
-                    = len(df_p_p)
+                    globals()[tc + '_plus'].loc[globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id] \
+                            .index, pitch_type + "_n"] = len(df_p_p)
 
-                    globals()[tc + '_plus']["N"] \
-                    [globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id].index] \
-                    += len(df_p_p)
+                    globals()[tc + '_plus'].loc[globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id] \
+                            .index,"N"] += len(df_p_p)
 
 #################################################
 
@@ -376,16 +374,15 @@ for tc in to_calculate:
         avg_acc = 0
 
         for pt in pts:
-            avg_acc += globals()[tc + '_plus'][pt + '_avg_x_rv100'] \
-                    [globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id].index] \
-                    * globals()[tc + '_plus'][pt + '_n'][globals()[tc + '_plus'] \
-                    [globals()[tc + '_plus']['pitcher_id'] == id].index] \
-                    / globals()[tc + '_plus']["N"][globals()[tc + '_plus'] \
-                    [globals()[tc + '_plus']['pitcher_id'] == id].index] \
+            avg_acc += globals()[tc + '_plus'].loc[globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id] \
+                    .index,pt + '_avg_x_rv100'] \
+                    * globals()[tc + '_plus'].loc[globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id] \
+                    .index ,pt + '_n'] \
+                    / globals()[tc + '_plus'].loc[globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id] \
+                    .index ,"N"]
 
-        globals()[tc + '_plus']['arsenal_avg'] \
-        [globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id].index] \
-        = round(avg_acc)
+        globals()[tc + '_plus'].loc[globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id] \
+                .index, 'arsenal_avg'] = round(avg_acc)
 
     for pt in pts:
         globals()[tc + '_plus'].drop([pt + '_n'], axis=1, inplace=True)
