@@ -322,6 +322,7 @@ for tc in to_calculate:
 
         automl.fit(X_train, y_train, **automl_settings)
         summary_s += str(automl.model.estimator) + "\n"
+        summary_s += str(automl.model.estimator.feature_importances_) + "\n"
         summary_s += str(automl.best_config) + "\n"
         summary_s += "r2: " + str(automl.best_loss) + " - 1\n"
         summary_s += str(automl.best_loss_per_estimator) + "\n"
