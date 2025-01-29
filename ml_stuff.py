@@ -314,7 +314,7 @@ for tc in to_calculate:
         automl = AutoML()
 
         automl_settings = {
-            "time_budget" : 1,
+            "time_budget" : 600,
             "metric" : "r2",
             "task" : "regression",
             "log_file_name" : "ml_stuff.log",
@@ -324,7 +324,7 @@ for tc in to_calculate:
         summary_s += str(automl.model.estimator) + "\n"
         summary_s += str(automl.model.estimator.feature_importances_) + "\n"
         summary_s += str(automl.best_config) + "\n"
-        summary_s += "r2: " + str(automl.best_loss) + " - 1\n"
+        summary_s += str(automl.best_loss) + "\n"
         summary_s += str(automl.best_loss_per_estimator) + "\n"
         summary_s += str(automl.metrics_for_best_config) + "\n"
 
