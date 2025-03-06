@@ -139,18 +139,6 @@ for i in df['pitch_type'].to_list():
         category.append("none")
 
 df['category'] = category
-df['in_play'] = [1 if x == "X" else 0 for x in df['type']]
-df['release_pos_x_2'] = [x**2 for x in df['release_pos_x']] 
-df['release_pos_z_2'] = [x**2 for x in df['release_pos_z']] 
-df['release_pos_y_2'] = [x**2 for x in df['release_pos_y']] 
-df['ip_launch_speed'] = [x * y if x == 1 else 0 for x, y in zip(df['in_play'], df['launch_speed'])]
-df['ip_launch_angle'] = [x * y if x == 1 else 0 for x, y in zip(df['in_play'], df['launch_angle'])]
-df['pitch_number_2'] = [x**2 for x in df['pitch_number']]
-df['pfx_x_2'] = [x**2 for x in df['pfx_x']] 
-df['pfx_z_2'] = [x**2 for x in df['pfx_z']] 
-df['plate_x_2'] = [x**2 for x in df['plate_x']] 
-df['plate_z_2'] = [x**2 for x in df['plate_z']] 
-df['swing_miss'] = [1 if x == "swinging_strike" else 0 for x in df['description']]
 df['c00'] = [1 if (x == 0 and y == 0) else 0 for x, y in zip(df['balls'], df['strikes'])]
 df['c10'] = [1 if (x == 1 and y == 0) else 0 for x, y in zip(df['balls'], df['strikes'])]
 df['c20'] = [1 if (x == 2 and y == 0) else 0 for x, y in zip(df['balls'], df['strikes'])]
@@ -314,19 +302,23 @@ for tc in to_calculate:
         automl = AutoML()
 
         automl_settings = {
-            "time_budget" : 600,
+            "time_budget" : 3600,
             "metric" : "r2",
             "task" : "regression",
             "log_file_name" : "ml_stuff.log",
+            "estimator_list": ["xgboost"],
         }
 
         automl.fit(X_train, y_train, **automl_settings)
+        r2 = automl.score(X_train, y_train)
+
         summary_s += str(automl.model.estimator) + "\n"
         summary_s += str(automl.model.estimator.feature_importances_) + "\n"
         summary_s += str(automl.best_config) + "\n"
         summary_s += str(automl.best_loss) + "\n"
         summary_s += str(automl.best_loss_per_estimator) + "\n"
         summary_s += str(automl.metrics_for_best_config) + "\n"
+        summary_s += str(r2) + "\n"
 
         # expected delta run expectancy
         dfs[l]['x_rv'] = automl.predict(X_train)
