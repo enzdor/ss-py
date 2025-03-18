@@ -66,37 +66,63 @@ summary_s = ""
 
 #################################################
 
+year = dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year
+
 pitcher_ids = list(df['pitcher'].unique())
 pitcher_names = []
 pts = ["FF", "SI", "FC", "CH", "FS", "FO", "SC", "CU", "KC", "CS", "SL", "ST", "SV", "KN"]
 
-for id in pitcher_ids:
-    pitcher_names.append(df['player_name'][df['pitcher'].to_list().index(id)])
-
 stuff_plus = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
-    'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year,
+    'season' : year,
     'arsenal_avg' : 0,
     'N': 0,
 })
 
 location_plus = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
-    'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year,
+    'season' : year,
     'arsenal_avg' : 0,
     'N': 0,
 })
 
 pitching_plus = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
-    'season' : dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year,
+    'season' : year,
     'arsenal_avg' : 0,
     'N': 0,
 })
 
+for id in pitcher_ids:
+    pitcher_names.append(df['player_name'][df['pitcher'].to_list().index(id)])
+
 pitchers = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
     'pitcher_name' : pitcher_names,
+})
+
+print(pitchers[pitchers.duplicated('pitcher_id', keep=False) == True])
+
+stuff_regressors = pd.DataFrame({
+    'pitcher_id' : pd.Series(dtype = "int"),
+    'pitch_type' : pd.Series(dtype = "str"),
+    'season' : pd.Series(dtype = "int"),
+    'release_speed': pd.Series(dtype = "float"),
+    'release_pos_x': pd.Series(dtype = "float"),
+    'release_pos_y': pd.Series(dtype = "float"),
+    'release_pos_z': pd.Series(dtype = "float"),
+    'pfx_x': pd.Series(dtype = "float"),
+    'pfx_z': pd.Series(dtype = "float"),
+    'vx0': pd.Series(dtype = "float"),
+    'vy0': pd.Series(dtype = "float"),
+    'vz0': pd.Series(dtype = "float"),
+    'ax': pd.Series(dtype = "float"),
+    'ay': pd.Series(dtype = "float"),
+    'az': pd.Series(dtype = "float"),
+    'release_spin_rate': pd.Series(dtype = "float"),
+    'spin_axis': pd.Series(dtype = "float"),
+    'release_extension': pd.Series(dtype = "float"),
+    'stuff_plus': pd.Series(dtype = "int"),
 })
 
 for pt in pts:
@@ -109,6 +135,7 @@ for pt in pts:
     stuff_plus[pt + "_n"] = 0
     pitching_plus[pt + "_n"] = 0
     location_plus[pt + "_n"] = 0
+
 
 #################################################
 
@@ -155,6 +182,45 @@ df['c32'] = [1 if (x == 3 and y == 2) else 0 for x, y in zip(df['balls'], df['st
 #################################################
 
 
+    # save average for each regressor for each
+    # pitcher
+
+
+#################################################
+
+for id in pitcher_ids:
+    df_pitcher = df[df['pitcher'] == id]
+
+    for pt in pts:
+        df_pitcher_pt = df_pitcher[df_pitcher['pitch_type'] == pt]
+
+        if len(df_pitcher_pt) > 0:
+            stuff_regressors = pd.concat([pd.DataFrame([[
+                int(id), 
+                pt,
+                int(year), 
+                round(df_pitcher_pt['release_speed'].mean(), 2),
+                round(df_pitcher_pt['release_pos_x'].mean(), 2),
+                round(df_pitcher_pt['release_pos_y'].mean(), 2),
+                round(df_pitcher_pt['release_pos_z'].mean(), 2),
+                round(df_pitcher_pt['pfx_x'].mean(), 2),
+                round(df_pitcher_pt['pfx_z'].mean(), 2),
+                round(df_pitcher_pt['vx0'].mean(), 2),
+                round(df_pitcher_pt['vy0'].mean(), 2),
+                round(df_pitcher_pt['vz0'].mean(), 2),
+                round(df_pitcher_pt['ax'].mean(), 2),
+                round(df_pitcher_pt['ay'].mean(), 2),
+                round(df_pitcher_pt['az'].mean(), 2),
+                round(df_pitcher_pt['release_spin_rate'].mean(), 2),
+                round(df_pitcher_pt['spin_axis'].mean(), 2),
+                round(df_pitcher_pt['release_extension'].mean(), 2),
+                -1,
+            ]], columns = stuff_regressors.columns), stuff_regressors], ignore_index=True)
+
+
+#################################################
+
+
     # separate into three different categories
 
 
@@ -186,76 +252,76 @@ for tc in to_calculate:
     for l in range(len(dfs)):
         summary_s += (categories[l] + "\n")
 
-        regressors = []
+        regressor_ml = []
 
         if tc == "stuff":
-            regressors.append(dfs[l]['release_speed'].to_list())
-            regressors.append(dfs[l]['release_pos_x'].to_list())
-            regressors.append(dfs[l]['release_pos_y'].to_list())
-            regressors.append(dfs[l]['release_pos_z'].to_list())
-            regressors.append(dfs[l]['pfx_x'].to_list())
-            regressors.append(dfs[l]['pfx_z'].to_list())
-            regressors.append(dfs[l]['vx0'].to_list())
-            regressors.append(dfs[l]['vy0'].to_list())
-            regressors.append(dfs[l]['vz0'].to_list())
-            regressors.append(dfs[l]['ax'].to_list())
-            regressors.append(dfs[l]['ay'].to_list())
-            regressors.append(dfs[l]['az'].to_list())
-            regressors.append(dfs[l]['release_spin_rate'].to_list())
-            regressors.append(dfs[l]['spin_axis'].to_list())
-            regressors.append(dfs[l]['release_extension'].to_list())
+            regressor_ml.append(dfs[l]['release_speed'].to_list())
+            regressor_ml.append(dfs[l]['release_pos_x'].to_list())
+            regressor_ml.append(dfs[l]['release_pos_y'].to_list())
+            regressor_ml.append(dfs[l]['release_pos_z'].to_list())
+            regressor_ml.append(dfs[l]['pfx_x'].to_list())
+            regressor_ml.append(dfs[l]['pfx_z'].to_list())
+            regressor_ml.append(dfs[l]['vx0'].to_list())
+            regressor_ml.append(dfs[l]['vy0'].to_list())
+            regressor_ml.append(dfs[l]['vz0'].to_list())
+            regressor_ml.append(dfs[l]['ax'].to_list())
+            regressor_ml.append(dfs[l]['ay'].to_list())
+            regressor_ml.append(dfs[l]['az'].to_list())
+            regressor_ml.append(dfs[l]['release_spin_rate'].to_list())
+            regressor_ml.append(dfs[l]['spin_axis'].to_list())
+            regressor_ml.append(dfs[l]['release_extension'].to_list())
         elif tc == "location":
-            regressors.append(dfs[l]['plate_x'].to_list())
-            regressors.append(dfs[l]['plate_z'].to_list())
-            regressors.append(dfs[l]['c00'].to_list())
-            regressors.append(dfs[l]['c10'].to_list())
-            regressors.append(dfs[l]['c20'].to_list())
-            regressors.append(dfs[l]['c30'].to_list())
-            regressors.append(dfs[l]['c01'].to_list())
-            regressors.append(dfs[l]['c11'].to_list())
-            regressors.append(dfs[l]['c21'].to_list())
-            regressors.append(dfs[l]['c31'].to_list())
-            regressors.append(dfs[l]['c02'].to_list())
-            regressors.append(dfs[l]['c12'].to_list())
-            regressors.append(dfs[l]['c22'].to_list())
-            regressors.append(dfs[l]['c32'].to_list())
+            regressor_ml.append(dfs[l]['plate_x'].to_list())
+            regressor_ml.append(dfs[l]['plate_z'].to_list())
+            regressor_ml.append(dfs[l]['c00'].to_list())
+            regressor_ml.append(dfs[l]['c10'].to_list())
+            regressor_ml.append(dfs[l]['c20'].to_list())
+            regressor_ml.append(dfs[l]['c30'].to_list())
+            regressor_ml.append(dfs[l]['c01'].to_list())
+            regressor_ml.append(dfs[l]['c11'].to_list())
+            regressor_ml.append(dfs[l]['c21'].to_list())
+            regressor_ml.append(dfs[l]['c31'].to_list())
+            regressor_ml.append(dfs[l]['c02'].to_list())
+            regressor_ml.append(dfs[l]['c12'].to_list())
+            regressor_ml.append(dfs[l]['c22'].to_list())
+            regressor_ml.append(dfs[l]['c32'].to_list())
         elif tc == "pitching":
-            regressors.append(dfs[l]['release_speed'].to_list())
-            regressors.append(dfs[l]['release_pos_x'].to_list())
-            regressors.append(dfs[l]['release_pos_y'].to_list())
-            regressors.append(dfs[l]['release_pos_z'].to_list())
-            regressors.append(dfs[l]['pfx_x'].to_list())
-            regressors.append(dfs[l]['pfx_z'].to_list())
-            regressors.append(dfs[l]['vx0'].to_list())
-            regressors.append(dfs[l]['vy0'].to_list())
-            regressors.append(dfs[l]['vz0'].to_list())
-            regressors.append(dfs[l]['ax'].to_list())
-            regressors.append(dfs[l]['ay'].to_list())
-            regressors.append(dfs[l]['az'].to_list())
-            regressors.append(dfs[l]['release_spin_rate'].to_list())
-            regressors.append(dfs[l]['spin_axis'].to_list())
-            regressors.append(dfs[l]['release_extension'].to_list())
-            regressors.append(dfs[l]['plate_x'].to_list())
-            regressors.append(dfs[l]['plate_z'].to_list())
-            regressors.append(dfs[l]['c00'].to_list())
-            regressors.append(dfs[l]['c10'].to_list())
-            regressors.append(dfs[l]['c20'].to_list())
-            regressors.append(dfs[l]['c30'].to_list())
-            regressors.append(dfs[l]['c01'].to_list())
-            regressors.append(dfs[l]['c11'].to_list())
-            regressors.append(dfs[l]['c21'].to_list())
-            regressors.append(dfs[l]['c31'].to_list())
-            regressors.append(dfs[l]['c02'].to_list())
-            regressors.append(dfs[l]['c12'].to_list())
-            regressors.append(dfs[l]['c22'].to_list())
-            regressors.append(dfs[l]['c32'].to_list())
+            regressor_ml.append(dfs[l]['release_speed'].to_list())
+            regressor_ml.append(dfs[l]['release_pos_x'].to_list())
+            regressor_ml.append(dfs[l]['release_pos_y'].to_list())
+            regressor_ml.append(dfs[l]['release_pos_z'].to_list())
+            regressor_ml.append(dfs[l]['pfx_x'].to_list())
+            regressor_ml.append(dfs[l]['pfx_z'].to_list())
+            regressor_ml.append(dfs[l]['vx0'].to_list())
+            regressor_ml.append(dfs[l]['vy0'].to_list())
+            regressor_ml.append(dfs[l]['vz0'].to_list())
+            regressor_ml.append(dfs[l]['ax'].to_list())
+            regressor_ml.append(dfs[l]['ay'].to_list())
+            regressor_ml.append(dfs[l]['az'].to_list())
+            regressor_ml.append(dfs[l]['release_spin_rate'].to_list())
+            regressor_ml.append(dfs[l]['spin_axis'].to_list())
+            regressor_ml.append(dfs[l]['release_extension'].to_list())
+            regressor_ml.append(dfs[l]['plate_x'].to_list())
+            regressor_ml.append(dfs[l]['plate_z'].to_list())
+            regressor_ml.append(dfs[l]['c00'].to_list())
+            regressor_ml.append(dfs[l]['c10'].to_list())
+            regressor_ml.append(dfs[l]['c20'].to_list())
+            regressor_ml.append(dfs[l]['c30'].to_list())
+            regressor_ml.append(dfs[l]['c01'].to_list())
+            regressor_ml.append(dfs[l]['c11'].to_list())
+            regressor_ml.append(dfs[l]['c21'].to_list())
+            regressor_ml.append(dfs[l]['c31'].to_list())
+            regressor_ml.append(dfs[l]['c02'].to_list())
+            regressor_ml.append(dfs[l]['c12'].to_list())
+            regressor_ml.append(dfs[l]['c22'].to_list())
+            regressor_ml.append(dfs[l]['c32'].to_list())
 
         X = []
         y = dfs[l]['delta_run_exp']
 
         for i in range(len(y)):
             obs = []
-            for x in regressors:
+            for x in regressor_ml:
                 obs.append(x[i])
             X.append(obs)
 
@@ -302,7 +368,7 @@ for tc in to_calculate:
         automl = AutoML()
 
         automl_settings = {
-            "time_budget" : 3600,
+            "time_budget" : 1, # 3600,
             "metric" : "r2",
             "task" : "regression",
             "log_file_name" : "ml_stuff.log",
@@ -322,7 +388,6 @@ for tc in to_calculate:
 
         # expected delta run expectancy
         dfs[l]['x_rv'] = automl.predict(X_train)
-        dfs[l]['n_x_rv'] = (dfs[l]['x_rv'] - dfs[l]['x_rv'].mean()) / dfs[l]['x_rv'].std()
 
     #################################################
 
@@ -344,7 +409,7 @@ for tc in to_calculate:
                     league_x_rv = dfs[l]['delta_run_exp'].mean()
                     avg_x_rv_v_league = round((avg_x_rv - league_x_rv ) / league_x_rv) + 100
 
-                    # globals mambojambo is means the following
+                    # globals mambojambo means the following
                     # globals()[dataframe name].loc[index, column] = expression
                     globals()[tc + '_plus'].loc[globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id] \
                             .index, pitch_type + "_avg_x_rv100"] = avg_x_rv_v_league
@@ -354,6 +419,10 @@ for tc in to_calculate:
 
                     globals()[tc + '_plus'].loc[globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id] \
                             .index,"N"] += len(df_p_p)
+
+                    stuff_regressors.loc[stuff_regressors[(stuff_regressors['pitch_type'] == pitch_type) & \
+                            (stuff_regressors['pitcher_id'] == id)].index, 'stuff_plus'] = avg_x_rv_v_league
+
 
 #################################################
 
@@ -377,11 +446,6 @@ for tc in to_calculate:
         globals()[tc + '_plus'].loc[globals()[tc + '_plus'][globals()[tc + '_plus']['pitcher_id'] == id] \
                 .index, 'arsenal_avg'] = round(avg_acc)
 
-    for pt in pts:
-        globals()[tc + '_plus'].drop([pt + '_n'], axis=1, inplace=True)
-
-    globals()[tc + '_plus'].drop(['N'], axis=1, inplace=True)
-
 #################################################
 
 
@@ -395,71 +459,145 @@ for tc in to_calculate:
 conn = sqlite3.connect(args.outfile_db)
 c = conn.cursor()
 
+print(pitchers[pitchers.duplicated('pitcher_id', keep=False) == True])
+
 c.executescript("""
 CREATE TABLE IF NOT EXISTS pitchers(
-    pitcher_id INTEGER PRIMARY KEY NOT NULL,
+    pitcher_id INTEGER PRIMARY KEY,
     pitcher_name TEXT
 );
 
-CREATE TABLE IF NOT EXISTS stuff_plus(
-    stuff_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+CREATE TABLE IF NOT EXISTS stuff_regressors(
+    regressor_id INTEGER PRIMARY KEY,
+    pitcher_id INTEGER NOT NULL,
+    pitch_type INTEGER NOT NULL,
     season INTEGER NOT NULL,
-    FF_avg_x_rv100 INTEGER NOT NULL,
-    FC_avg_x_rv100 INTEGER NOT NULL,
-    CH_avg_x_rv100 INTEGER NOT NULL,
-    FS_avg_x_rv100 INTEGER NOT NULL,
-    FO_avg_x_rv100 INTEGER NOT NULL,
-    SC_avg_x_rv100 INTEGER NOT NULL,
-    CU_avg_x_rv100 INTEGER NOT NULL,
-    KC_avg_x_rv100 INTEGER NOT NULL,
-    CS_avg_x_rv100 INTEGER NOT NULL,
-    SL_avg_x_rv100 INTEGER NOT NULL,
-    ST_avg_x_rv100 INTEGER NOT NULL,
-    SV_avg_x_rv100 INTEGER NOT NULL,
-    KN_avg_x_rv100 INTEGER NOT NULL,
-    arsenal_avg INTEGER NOT NULL,
+    release_speed INTEGER,
+    release_pos_x INTEGER,
+    release_pos_y INTEGER,
+    release_pos_z INTEGER,
+    pfx_x INTEGER,
+    pfx_z INTEGER,
+    vx0 INTEGER,
+    vy0 INTEGER,
+    vz0 INTEGER,
+    ax INTEGER,
+    ay INTEGER,
+    az INTEGER,
+    release_spin_rate INTEGER,
+    spin_axis INTEGER,
+    release_extension INTEGER,
+    stuff_plus INTEGER,
+    FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
+);
+
+CREATE TABLE IF NOT EXISTS stuff_plus(
+    stuff_id INTEGER PRIMARY KEY,
+    season INTEGER NOT NULL,
+    FF_avg_x_rv100 INTEGER,
+    SI_avg_x_rv100 INTEGER,
+    FC_avg_x_rv100 INTEGER,
+    CH_avg_x_rv100 INTEGER,
+    FS_avg_x_rv100 INTEGER,
+    FO_avg_x_rv100 INTEGER,
+    SC_avg_x_rv100 INTEGER,
+    CU_avg_x_rv100 INTEGER,
+    KC_avg_x_rv100 INTEGER,
+    CS_avg_x_rv100 INTEGER,
+    SL_avg_x_rv100 INTEGER,
+    ST_avg_x_rv100 INTEGER,
+    SV_avg_x_rv100 INTEGER,
+    KN_avg_x_rv100 INTEGER,
+    FF_n INTEGER,
+    SI_n INTEGER,
+    FC_n INTEGER,
+    CH_n INTEGER,
+    FS_n INTEGER,
+    FO_n INTEGER,
+    SC_n INTEGER,
+    CU_n INTEGER,
+    KC_n INTEGER,
+    CS_n INTEGER,
+    SL_n INTEGER,
+    ST_n INTEGER,
+    SV_n INTEGER,
+    KN_n INTEGER,
+    N INTEGER,
+    arsenal_avg INTEGER,
     pitcher_id INTEGER NOT NULL,
     FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
 );
 
 CREATE TABLE IF NOT EXISTS location_plus(
-    stuff_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    location_id INTEGER PRIMARY KEY,
     season INTEGER NOT NULL,
-    FF_avg_x_rv100 INTEGER NOT NULL,
-    FC_avg_x_rv100 INTEGER NOT NULL,
-    CH_avg_x_rv100 INTEGER NOT NULL,
-    FS_avg_x_rv100 INTEGER NOT NULL,
-    FO_avg_x_rv100 INTEGER NOT NULL,
-    SC_avg_x_rv100 INTEGER NOT NULL,
-    CU_avg_x_rv100 INTEGER NOT NULL,
-    KC_avg_x_rv100 INTEGER NOT NULL,
-    CS_avg_x_rv100 INTEGER NOT NULL,
-    SL_avg_x_rv100 INTEGER NOT NULL,
-    ST_avg_x_rv100 INTEGER NOT NULL,
-    SV_avg_x_rv100 INTEGER NOT NULL,
-    KN_avg_x_rv100 INTEGER NOT NULL,
-    arsenal_avg INTEGER NOT NULL,
+    FF_avg_x_rv100 INTEGER,
+    SI_avg_x_rv100 INTEGER,
+    FC_avg_x_rv100 INTEGER,
+    CH_avg_x_rv100 INTEGER,
+    FS_avg_x_rv100 INTEGER,
+    FO_avg_x_rv100 INTEGER,
+    SC_avg_x_rv100 INTEGER,
+    CU_avg_x_rv100 INTEGER,
+    KC_avg_x_rv100 INTEGER,
+    CS_avg_x_rv100 INTEGER,
+    SL_avg_x_rv100 INTEGER,
+    ST_avg_x_rv100 INTEGER,
+    SV_avg_x_rv100 INTEGER,
+    KN_avg_x_rv100 INTEGER,
+    FF_n INTEGER,
+    SI_n INTEGER,
+    FC_n INTEGER,
+    CH_n INTEGER,
+    FS_n INTEGER,
+    FO_n INTEGER,
+    SC_n INTEGER,
+    CU_n INTEGER,
+    KC_n INTEGER,
+    CS_n INTEGER,
+    SL_n INTEGER,
+    ST_n INTEGER,
+    SV_n INTEGER,
+    KN_n INTEGER,
+    N INTEGER,
+    arsenal_avg INTEGER,
     pitcher_id INTEGER NOT NULL,
     FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
 );
 
 CREATE TABLE IF NOT EXISTS pitching_plus(
-    stuff_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    pitching_id INTEGER PRIMARY KEY,
     season INTEGER NOT NULL,
-    FF_avg_x_rv100 INTEGER NOT NULL,
-    FC_avg_x_rv100 INTEGER NOT NULL,
-    CH_avg_x_rv100 INTEGER NOT NULL,
-    FS_avg_x_rv100 INTEGER NOT NULL,
-    FO_avg_x_rv100 INTEGER NOT NULL,
-    SC_avg_x_rv100 INTEGER NOT NULL,
-    CU_avg_x_rv100 INTEGER NOT NULL,
-    KC_avg_x_rv100 INTEGER NOT NULL,
-    CS_avg_x_rv100 INTEGER NOT NULL,
-    SL_avg_x_rv100 INTEGER NOT NULL,
-    ST_avg_x_rv100 INTEGER NOT NULL,
-    SV_avg_x_rv100 INTEGER NOT NULL,
-    KN_avg_x_rv100 INTEGER NOT NULL,
-    arsenal_avg INTEGER NOT NULL,
+    FF_avg_x_rv100 INTEGER,
+    SI_avg_x_rv100 INTEGER,
+    FC_avg_x_rv100 INTEGER,
+    CH_avg_x_rv100 INTEGER,
+    FS_avg_x_rv100 INTEGER,
+    FO_avg_x_rv100 INTEGER,
+    SC_avg_x_rv100 INTEGER,
+    CU_avg_x_rv100 INTEGER,
+    KC_avg_x_rv100 INTEGER,
+    CS_avg_x_rv100 INTEGER,
+    SL_avg_x_rv100 INTEGER,
+    ST_avg_x_rv100 INTEGER,
+    SV_avg_x_rv100 INTEGER,
+    KN_avg_x_rv100 INTEGER,
+    FF_n INTEGER,
+    SI_n INTEGER,
+    FC_n INTEGER,
+    CH_n INTEGER,
+    FS_n INTEGER,
+    FO_n INTEGER,
+    SC_n INTEGER,
+    CU_n INTEGER,
+    KC_n INTEGER,
+    CS_n INTEGER,
+    SL_n INTEGER,
+    ST_n INTEGER,
+    SV_n INTEGER,
+    KN_n INTEGER,
+    N INTEGER,
+    arsenal_avg INTEGER,
     pitcher_id INTEGER NOT NULL,
     FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
 );
@@ -468,10 +606,11 @@ CREATE TABLE IF NOT EXISTS pitching_plus(
 
 conn.commit()
 
-pitchers.to_sql('pitchers', conn, if_exists='replace', index=False)
-location_plus.to_sql('location_plus', conn, if_exists='replace', index=True)
-stuff_plus.to_sql('stuff_plus', conn, if_exists='replace', index=True)
-pitching_plus.to_sql('pitching_plus', conn, if_exists='replace', index=True)
+pitchers.to_sql('pitchers', conn, if_exists='append', index=False)
+stuff_regressors.to_sql('stuff_regressors', conn, if_exists='append', index=True, index_label='regressor_id')
+location_plus.to_sql('location_plus', conn, if_exists='append', index=True, index_label='location_id')
+stuff_plus.to_sql('stuff_plus', conn, if_exists='append', index=True, index_label='stuff_id')
+pitching_plus.to_sql('pitching_plus', conn, if_exists='append', index=True, index_label='pitching_id')
 
 with open(args.outfile_summary, "w") as text_file:
     text_file.write(summary_s)
