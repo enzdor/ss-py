@@ -5,6 +5,7 @@ import sqlite3
 import sys
 import argparse
 from flaml import AutoML
+from sklearn.model_selection import train_test_split
 
 #################################################
 
@@ -100,8 +101,6 @@ pitchers = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
     'pitcher_name' : pitcher_names,
 })
-
-print(pitchers[pitchers.duplicated('pitcher_id', keep=False) == True])
 
 stuff_regressors = pd.DataFrame({
     'pitcher_id' : pd.Series(dtype = "int"),
@@ -353,8 +352,18 @@ for tc in to_calculate:
 
         summary_s += ("Observations dropped due to missing values:" + str(len(to_drop)) + "\n")
 
-        X_train = np.array(X)
+    #################################################
+
+
+        # split test and training set 
+
+
+    #################################################
+
+        X_raw = np.array(X)
         y_train = np.array(y)
+
+        X_train, X_test, y_train, y_test = train_test_split(X_raw, y_train, test_size=0.2, random_state=11)
 
     #################################################
 
@@ -364,11 +373,10 @@ for tc in to_calculate:
 
     #################################################
 
-
         automl = AutoML()
 
         automl_settings = {
-            "time_budget" : 1, # 3600,
+            "time_budget" : 1,
             "metric" : "r2",
             "task" : "regression",
             "log_file_name" : "ml_stuff.log",
@@ -377,6 +385,7 @@ for tc in to_calculate:
 
         automl.fit(X_train, y_train, **automl_settings)
         r2 = automl.score(X_train, y_train)
+        r2_test = automl.score(X_test, y_test)
 
         summary_s += str(automl.model.estimator) + "\n"
         summary_s += str(automl.model.estimator.feature_importances_) + "\n"
@@ -384,10 +393,11 @@ for tc in to_calculate:
         summary_s += str(automl.best_loss) + "\n"
         summary_s += str(automl.best_loss_per_estimator) + "\n"
         summary_s += str(automl.metrics_for_best_config) + "\n"
-        summary_s += str(r2) + "\n"
+        summary_s += str(r2) + " r2 \n"
+        summary_s += str(r2_test) + " r2 test\n"
 
         # expected delta run expectancy
-        dfs[l]['x_rv'] = automl.predict(X_train)
+        dfs[l]['x_rv'] = automl.predict(X_raw)
 
     #################################################
 
@@ -406,8 +416,9 @@ for tc in to_calculate:
 
                 if len(df_p_p) > 0:
                     avg_x_rv = df_p_p['x_rv'].mean()
-                    league_x_rv = dfs[l]['delta_run_exp'].mean()
-                    avg_x_rv_v_league = round((avg_x_rv - league_x_rv ) / league_x_rv) + 100
+                    # league_x_rv = dfs[l]['delta_run_exp'].mean()
+                    league_x_rv = dfs[l]['x_rv'].mean()
+                    avg_x_rv_v_league = round(((avg_x_rv - league_x_rv ) / league_x_rv) + 100)
 
                     # globals mambojambo means the following
                     # globals()[dataframe name].loc[index, column] = expression
@@ -458,8 +469,6 @@ for tc in to_calculate:
 # conn = sqlite3.connect('new.db')
 conn = sqlite3.connect(args.outfile_db)
 c = conn.cursor()
-
-print(pitchers[pitchers.duplicated('pitcher_id', keep=False) == True])
 
 c.executescript("""
 CREATE TABLE IF NOT EXISTS pitchers(
