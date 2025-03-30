@@ -425,16 +425,23 @@ for tc in to_calculate:
     print(f"[{dt.datetime.now()}] Calculating {tc} plus")
 
     for s in seasons:
+        dfs = []
+
+        for l in range(len(df_groups)):
+            dfs.append(df_groups[l][df_groups[l]['season'] == s])
+
         for id in pitcher_ids:
             to_append = [
                 s, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, id,
             ]
+            n = 0
 
-            for l in range(len(df_groups)):
-                df_p = df_groups[l][df_groups[l]['pitcher'] == id]
+            for l in range(len(dfs)):
+                df_p = dfs[l][dfs[l]['pitcher'] == id]
 
                 if len(df_p) > 0:
+                    n += len(df_p)
                     for pitch_type in categories_types[l]:
                         df_p_p = df_p[df_p['pitch_type'] == pitch_type]
 
@@ -444,12 +451,8 @@ for tc in to_calculate:
                             ind_N = list(globals()[tc + '_plus'].columns).index('N')
 
                             avg_x_rv = df_p_p['x_rv'].mean()
-                            league_x_rv = df_groups[l]['x_rv'].mean()
+                            league_x_rv = dfs[l]['x_rv'].mean()
                             avg_x_rv_v_league = round(((avg_x_rv - league_x_rv ) / league_x_rv * 100) + 100)
-                            if tc == 'stuff':
-                                print(avg_x_rv)
-                                print(league_x_rv)
-                                print(avg_x_rv_v_league)
 
                             to_append[ind_x] = avg_x_rv_v_league
                             to_append[ind_n] = len(df_p_p)
@@ -459,8 +462,9 @@ for tc in to_calculate:
                                     (stuff_regressors['pitcher_id'] == id) & (stuff_regressors['season'] == s)].index, 
                                                  'stuff_plus'] = avg_x_rv_v_league
 
-                    globals()[tc + '_plus'] = pd.concat([pd.DataFrame([to_append], columns = globals()[tc + '_plus'].columns), 
-                                                         globals()[tc + '_plus']], ignore_index=True)
+            if n > 0:
+                globals()[tc + '_plus'] = pd.concat([pd.DataFrame([to_append], columns = globals()[tc + '_plus'].columns), 
+                                                     globals()[tc + '_plus']], ignore_index=True)
 
 #################################################
 
@@ -471,7 +475,7 @@ for tc in to_calculate:
 #################################################
 
 for tc in to_calculate:
-    print("Calculating arsenal averages")
+    print(f"[{dt.datetime.now()}] Calculating arsenal averages for {tc}")
     avg_ars = globals()[tc + '_plus']['arsenal_avg']
 
     for pt in pts:
@@ -489,7 +493,7 @@ for tc in to_calculate:
 
 #################################################
 
-print("Calculating arsenal averages exporting to sqlite")
+print("[{dt.datetime.now()}] Exporting to sqlite")
 # conn = sqlite3.connect('new.db')
 conn = sqlite3.connect(args.outfile_db)
 c = conn.cursor()
