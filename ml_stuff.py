@@ -71,6 +71,7 @@ year = dt.datetime.strptime(df['game_date'][0], "%Y-%m-%d").year
 
 pitcher_ids = list(df['pitcher'].unique())
 pitcher_names = []
+pitcher_handedness = []
 pts = ["FF", "SI", "FC", "CH", "FS", "FO", "SC", "CU", "KC", "CS", "SL", "ST", "SV", "KN"]
 
 stuff_plus = pd.DataFrame({
@@ -96,10 +97,12 @@ pitching_plus = pd.DataFrame({
 
 for id in pitcher_ids:
     pitcher_names.append(df['player_name'][df['pitcher'].to_list().index(id)])
+    pitcher_handedness.append(df['p_throws'][df['pitcher'].to_list().index(id)])
 
 pitchers = pd.DataFrame({
     'pitcher_id' : pitcher_ids,
     'pitcher_name' : pitcher_names,
+    'p_throws' : pitcher_handedness,
 })
 
 stuff_regressors = pd.DataFrame({
@@ -376,7 +379,7 @@ for tc in to_calculate:
         automl = AutoML()
 
         automl_settings = {
-            "time_budget" : 1,
+            "time_budget" : 3600,
             "metric" : "r2",
             "task" : "regression",
             "log_file_name" : "ml_stuff.log",
@@ -398,6 +401,7 @@ for tc in to_calculate:
 
         # expected delta run expectancy
         dfs[l]['x_rv'] = automl.predict(X_raw)
+        summary_s += str(dfs[l]['x_rv'].mean()) + "mean"
 
     #################################################
 
@@ -473,7 +477,8 @@ c = conn.cursor()
 c.executescript("""
 CREATE TABLE IF NOT EXISTS pitchers(
     pitcher_id INTEGER PRIMARY KEY,
-    pitcher_name TEXT
+    pitcher_name TEXT,
+    p_throws TEXT
 );
 
 CREATE TABLE IF NOT EXISTS stuff_regressors(
