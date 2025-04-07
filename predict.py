@@ -329,106 +329,107 @@ to_calculate = ["pitching", "location", "stuff"]
 
 for tc in to_calculate:
     summary_s += ("\n" + tc + "\n")
-
-    for l in range(len(df_groups)):
-        print(f"[{dt.datetime.now()}] Making predictions of {tc} for {categories[l]}")
-        summary_s += (categories[l] + "\n")
-
-        regressor_ml = []
-
-        if tc == "stuff":
-            regs = ['release_extension', 'spin_axis', 'release_spin_rate', 'az', 'ay', 
-                    'ax', 'vz0', 'vy0', 'vx0', 'pfx_z', 'pfx_x', 'release_pos_z', 
-                    'release_pos_y', 'release_pos_x', 'release_speed']
-            for r in regs:
-                regressor_ml.append(df_groups[l][r].to_list())
-
-        elif tc == "location":
-            regs = ['c32', 'c22', 'c12', 'c02', 'c31', 'c21', 'c11', 'c01', 'c30', 
-                    'c20', 'c10', 'c00', 'plate_z', 'plate_x', ]
-            for r in regs:
-                regressor_ml.append(df_groups[l][r].to_list())
-
-        elif tc == "pitching":
-            regs = ['c32', 'c22', 'c12', 'c02', 'c31', 'c21', 'c11', 'c01', 'c30', 
-                    'c20', 'c10', 'c00', 'plate_z', 'plate_x', 'release_extension', 
-                    'spin_axis', 'release_spin_rate', 'az', 'ay', 'ax', 'vz0', 'vy0', 
-                    'vx0', 'pfx_z', 'pfx_x', 'release_pos_z', 'release_pos_y', 
-                    'release_pos_x', 'release_speed', ]
-            for r in regs:
-                regressor_ml.append(df_groups[l][r].to_list())
-
-        X = []
-        y = df_groups[l]['delta_run_exp']
-
-        for i in range(len(y)):
-            obs = []
-            for x in regressor_ml:
-                obs.append(x[i])
-            X.append(obs)
-
-    #################################################
-
-
-        # drop observations with nans
-
-
-    #################################################
-
-        to_drop = []
-
-        for i in np.argwhere(np.isnan(np.array(y))):
-            if i[0] not in to_drop:
-                to_drop.append(i[0])
-
-        for i in np.argwhere(np.isnan(np.array(X))):
-            if i[0] not in to_drop:
-                to_drop.append(i[0])
-
-        to_drop = list(reversed(sorted(to_drop)))
-
-        for i in to_drop:
-            X.pop(i)
-            y.pop(i)
-            category.pop(i)
-
-        df_groups[l].drop(to_drop, inplace=True)
-
-    #################################################
-
-
-        # predict
-
-
-    #################################################
-
-        gc.disable()
-
-        with open(f"{args.models_path}/{tc}_{categories[l]}.pkl", 'rb') as f:
-            loaded_automl = pickle.load(f)
-
-        gc.enable()
-
-        df_groups[l]['x_rv'] = loaded_automl.predict(X)
-
-
-    #################################################
-
-
-        # calculate players' average rvs for each
-        # pitch type
-
-
-    #################################################
-
-for tc in to_calculate:
-    print(f"[{dt.datetime.now()}] Calculating {tc} plus")
+    dftc = df_groups
 
     for s in seasons:
         dfs = []
 
-        for l in range(len(df_groups)):
-            dfs.append(df_groups[l][df_groups[l]['season'] == s])
+        for l in range(len(dftc)):
+            dfs.append(dftc[l][dftc[l]['season'] == s])
+
+
+        for l in range(len(dftc)):
+            print(f"[{dt.datetime.now()}] Making predictions of {tc} for {categories[l]}")
+            summary_s += (categories[l] + "\n")
+
+            regressor_ml = []
+
+            if tc == "stuff":
+                regs = ['release_extension', 'spin_axis', 'release_spin_rate', 'az', 'ay', 
+                        'ax', 'vz0', 'vy0', 'vx0', 'pfx_z', 'pfx_x', 'release_pos_z', 
+                        'release_pos_y', 'release_pos_x', 'release_speed']
+                for r in regs:
+                    regressor_ml.append(dfs[l][r].to_list())
+
+            elif tc == "location":
+                regs = ['c32', 'c22', 'c12', 'c02', 'c31', 'c21', 'c11', 'c01', 'c30', 
+                        'c20', 'c10', 'c00', 'plate_z', 'plate_x', ]
+                for r in regs:
+                    regressor_ml.append(dfs[l][r].to_list())
+
+            elif tc == "pitching":
+                regs = ['c32', 'c22', 'c12', 'c02', 'c31', 'c21', 'c11', 'c01', 'c30', 
+                        'c20', 'c10', 'c00', 'plate_z', 'plate_x', 'release_extension', 
+                        'spin_axis', 'release_spin_rate', 'az', 'ay', 'ax', 'vz0', 'vy0', 
+                        'vx0', 'pfx_z', 'pfx_x', 'release_pos_z', 'release_pos_y', 
+                        'release_pos_x', 'release_speed', ]
+                for r in regs:
+                    regressor_ml.append(dfs[l][r].to_list())
+
+            X = []
+            y = dfs[l]['delta_run_exp']
+
+            for i in range(len(y)):
+                obs = []
+                for x in regressor_ml:
+                    obs.append(x[i])
+                X.append(obs)
+
+        #################################################
+
+
+            # drop observations with nans
+
+
+        #################################################
+
+            to_drop = []
+
+            for i in np.argwhere(np.isnan(np.array(y))):
+                if i[0] not in to_drop:
+                    to_drop.append(i[0])
+
+            for i in np.argwhere(np.isnan(np.array(X))):
+                if i[0] not in to_drop:
+                    to_drop.append(i[0])
+
+            to_drop = list(reversed(sorted(to_drop)))
+
+            for i in to_drop:
+                X.pop(i)
+                y.pop(i)
+                category.pop(i)
+
+            dfs[l].drop(to_drop, inplace=True)
+
+        #################################################
+
+
+            # predict
+
+
+        #################################################
+
+            gc.disable()
+
+            with open(f"{args.models_path}/{tc}_{categories[l]}.pkl", 'rb') as f:
+                loaded_automl = pickle.load(f)
+
+            gc.enable()
+
+            dfs[l]['x_rv'] = loaded_automl.predict(X)
+
+
+        #################################################
+
+
+            # calculate players' average rvs for each
+            # pitch type
+
+
+        #################################################
+
+        print(f"[{dt.datetime.now()}] Calculating {tc} plus")
 
         for id in pitcher_ids:
             to_append = [
@@ -493,7 +494,7 @@ for tc in to_calculate:
 
 #################################################
 
-print("[{dt.datetime.now()}] Exporting to sqlite")
+print(f"[{dt.datetime.now()}] Exporting to sqlite")
 # conn = sqlite3.connect('new.db')
 conn = sqlite3.connect(args.outfile_db)
 c = conn.cursor()
