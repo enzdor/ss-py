@@ -5,6 +5,7 @@ import sqlite3
 import sys
 import argparse
 import pickle
+import gc
 
 #################################################
 
@@ -54,6 +55,7 @@ if len(args.input_file_path) < 1:
     print("There was no path provided for the baseball savant data.")
     quit()
 
+print(f"[{dt.datetime.now()}] Loading data from {args.input_file_path}")
 df = pd.read_csv(args.input_file_path)
 
 if len(df) < 1:
@@ -327,77 +329,37 @@ to_calculate = ["pitching", "location", "stuff"]
 
 for tc in to_calculate:
     summary_s += ("\n" + tc + "\n")
-    dfs = df_groups
 
-    for l in range(len(dfs)):
+    for l in range(len(df_groups)):
+        print(f"[{dt.datetime.now()}] Making predictions of {tc} for {categories[l]}")
         summary_s += (categories[l] + "\n")
 
         regressor_ml = []
 
         if tc == "stuff":
-            regressor_ml.append(dfs[l]['release_speed'].to_list())
-            regressor_ml.append(dfs[l]['release_pos_x'].to_list())
-            regressor_ml.append(dfs[l]['release_pos_y'].to_list())
-            regressor_ml.append(dfs[l]['release_pos_z'].to_list())
-            regressor_ml.append(dfs[l]['pfx_x'].to_list())
-            regressor_ml.append(dfs[l]['pfx_z'].to_list())
-            regressor_ml.append(dfs[l]['vx0'].to_list())
-            regressor_ml.append(dfs[l]['vy0'].to_list())
-            regressor_ml.append(dfs[l]['vz0'].to_list())
-            regressor_ml.append(dfs[l]['ax'].to_list())
-            regressor_ml.append(dfs[l]['ay'].to_list())
-            regressor_ml.append(dfs[l]['az'].to_list())
-            regressor_ml.append(dfs[l]['release_spin_rate'].to_list())
-            regressor_ml.append(dfs[l]['spin_axis'].to_list())
-            regressor_ml.append(dfs[l]['release_extension'].to_list())
+            regs = ['release_extension', 'spin_axis', 'release_spin_rate', 'az', 'ay', 
+                    'ax', 'vz0', 'vy0', 'vx0', 'pfx_z', 'pfx_x', 'release_pos_z', 
+                    'release_pos_y', 'release_pos_x', 'release_speed']
+            for r in regs:
+                regressor_ml.append(df_groups[l][r].to_list())
+
         elif tc == "location":
-            regressor_ml.append(dfs[l]['plate_x'].to_list())
-            regressor_ml.append(dfs[l]['plate_z'].to_list())
-            regressor_ml.append(dfs[l]['c00'].to_list())
-            regressor_ml.append(dfs[l]['c10'].to_list())
-            regressor_ml.append(dfs[l]['c20'].to_list())
-            regressor_ml.append(dfs[l]['c30'].to_list())
-            regressor_ml.append(dfs[l]['c01'].to_list())
-            regressor_ml.append(dfs[l]['c11'].to_list())
-            regressor_ml.append(dfs[l]['c21'].to_list())
-            regressor_ml.append(dfs[l]['c31'].to_list())
-            regressor_ml.append(dfs[l]['c02'].to_list())
-            regressor_ml.append(dfs[l]['c12'].to_list())
-            regressor_ml.append(dfs[l]['c22'].to_list())
-            regressor_ml.append(dfs[l]['c32'].to_list())
+            regs = ['c32', 'c22', 'c12', 'c02', 'c31', 'c21', 'c11', 'c01', 'c30', 
+                    'c20', 'c10', 'c00', 'plate_z', 'plate_x', ]
+            for r in regs:
+                regressor_ml.append(df_groups[l][r].to_list())
+
         elif tc == "pitching":
-            regressor_ml.append(dfs[l]['release_speed'].to_list())
-            regressor_ml.append(dfs[l]['release_pos_x'].to_list())
-            regressor_ml.append(dfs[l]['release_pos_y'].to_list())
-            regressor_ml.append(dfs[l]['release_pos_z'].to_list())
-            regressor_ml.append(dfs[l]['pfx_x'].to_list())
-            regressor_ml.append(dfs[l]['pfx_z'].to_list())
-            regressor_ml.append(dfs[l]['vx0'].to_list())
-            regressor_ml.append(dfs[l]['vy0'].to_list())
-            regressor_ml.append(dfs[l]['vz0'].to_list())
-            regressor_ml.append(dfs[l]['ax'].to_list())
-            regressor_ml.append(dfs[l]['ay'].to_list())
-            regressor_ml.append(dfs[l]['az'].to_list())
-            regressor_ml.append(dfs[l]['release_spin_rate'].to_list())
-            regressor_ml.append(dfs[l]['spin_axis'].to_list())
-            regressor_ml.append(dfs[l]['release_extension'].to_list())
-            regressor_ml.append(dfs[l]['plate_x'].to_list())
-            regressor_ml.append(dfs[l]['plate_z'].to_list())
-            regressor_ml.append(dfs[l]['c00'].to_list())
-            regressor_ml.append(dfs[l]['c10'].to_list())
-            regressor_ml.append(dfs[l]['c20'].to_list())
-            regressor_ml.append(dfs[l]['c30'].to_list())
-            regressor_ml.append(dfs[l]['c01'].to_list())
-            regressor_ml.append(dfs[l]['c11'].to_list())
-            regressor_ml.append(dfs[l]['c21'].to_list())
-            regressor_ml.append(dfs[l]['c31'].to_list())
-            regressor_ml.append(dfs[l]['c02'].to_list())
-            regressor_ml.append(dfs[l]['c12'].to_list())
-            regressor_ml.append(dfs[l]['c22'].to_list())
-            regressor_ml.append(dfs[l]['c32'].to_list())
+            regs = ['c32', 'c22', 'c12', 'c02', 'c31', 'c21', 'c11', 'c01', 'c30', 
+                    'c20', 'c10', 'c00', 'plate_z', 'plate_x', 'release_extension', 
+                    'spin_axis', 'release_spin_rate', 'az', 'ay', 'ax', 'vz0', 'vy0', 
+                    'vx0', 'pfx_z', 'pfx_x', 'release_pos_z', 'release_pos_y', 
+                    'release_pos_x', 'release_speed', ]
+            for r in regs:
+                regressor_ml.append(df_groups[l][r].to_list())
 
         X = []
-        y = dfs[l]['delta_run_exp']
+        y = df_groups[l]['delta_run_exp']
 
         for i in range(len(y)):
             obs = []
@@ -429,7 +391,8 @@ for tc in to_calculate:
             X.pop(i)
             y.pop(i)
             category.pop(i)
-            dfs[l] = dfs[l].drop(i)
+
+        df_groups[l].drop(to_drop, inplace=True)
 
     #################################################
 
@@ -439,10 +402,15 @@ for tc in to_calculate:
 
     #################################################
 
+        gc.disable()
+
         with open(f"{args.models_path}/{tc}_{categories[l]}.pkl", 'rb') as f:
             loaded_automl = pickle.load(f)
 
-        dfs[l]['x_rv'] = loaded_automl.predict(X)
+        gc.enable()
+
+        df_groups[l]['x_rv'] = loaded_automl.predict(X)
+
 
     #################################################
 
@@ -454,7 +422,7 @@ for tc in to_calculate:
     #################################################
 
 for tc in to_calculate:
-    dfs = df_groups
+    print(f"[{dt.datetime.now()}] Calculating {tc} plus")
 
     for s in seasons:
         for id in pitcher_ids:
@@ -463,8 +431,8 @@ for tc in to_calculate:
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, id,
             ]
 
-            for l in range(len(dfs)):
-                df_p = dfs[l][dfs[l]['pitcher'] == id]
+            for l in range(len(df_groups)):
+                df_p = df_groups[l][df_groups[l]['pitcher'] == id]
 
                 if len(df_p) > 0:
                     for pitch_type in categories_types[l]:
@@ -476,8 +444,12 @@ for tc in to_calculate:
                             ind_N = list(globals()[tc + '_plus'].columns).index('N')
 
                             avg_x_rv = df_p_p['x_rv'].mean()
-                            league_x_rv = dfs[l]['x_rv'].mean()
-                            avg_x_rv_v_league = round(((avg_x_rv - league_x_rv ) / league_x_rv) + 100)
+                            league_x_rv = df_groups[l]['x_rv'].mean()
+                            avg_x_rv_v_league = round(((avg_x_rv - league_x_rv ) / league_x_rv * 100) + 100)
+                            if tc == 'stuff':
+                                print(avg_x_rv)
+                                print(league_x_rv)
+                                print(avg_x_rv_v_league)
 
                             to_append[ind_x] = avg_x_rv_v_league
                             to_append[ind_n] = len(df_p_p)
@@ -499,6 +471,7 @@ for tc in to_calculate:
 #################################################
 
 for tc in to_calculate:
+    print("Calculating arsenal averages")
     avg_ars = globals()[tc + '_plus']['arsenal_avg']
 
     for pt in pts:
@@ -516,6 +489,7 @@ for tc in to_calculate:
 
 #################################################
 
+print("Calculating arsenal averages exporting to sqlite")
 # conn = sqlite3.connect('new.db')
 conn = sqlite3.connect(args.outfile_db)
 c = conn.cursor()

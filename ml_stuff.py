@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser(description="""
 """)
 
 parser.add_argument("input_file_path")
-parser.add_argument("-osum", "--outfile-summary", dest="outfile_summary", default="ml_stuff_sum.log", help="""
+parser.add_argument("-osum", "--outfile-summary", dest="outfile_summary", default="models.log", help="""
         The path for the summary, a text file.
 """)
 parser.add_argument("-m", "--models", dest="models_path", default="./models", help="""
@@ -260,7 +260,7 @@ for tc in to_calculate:
         automl = AutoML()
 
         automl_settings = {
-            "time_budget" : 1,
+            "time_budget" : 3600 * 3,
             "metric" : "r2",
             "task" : "regression",
             "log_file_name" : "ml_stuff.log",
@@ -273,6 +273,7 @@ for tc in to_calculate:
 
         summary_s += str(automl.model.estimator) + "\n"
         summary_s += str(automl.model.estimator.feature_importances_) + "\n"
+        summary_s += str(automl.feature_names_in_) + "\n"
         summary_s += str(automl.best_config) + "\n"
         summary_s += str(automl.best_loss) + "\n"
         summary_s += str(automl.best_loss_per_estimator) + "\n"
