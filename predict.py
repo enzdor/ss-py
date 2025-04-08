@@ -16,7 +16,7 @@ import gc
 #################################################
 
 parser = argparse.ArgumentParser(description="""
-        usage: python predict.py [-h] [-odb data.db] [-olog sum.log]
+        usage: python predict.py [-h] [-odb data.db] 
                [-models ./path-to models-folder] infile.csv 
 
         Script to calculate stuff, location and pitching plus from
@@ -31,9 +31,6 @@ parser = argparse.ArgumentParser(description="""
 parser.add_argument("input_file_path")
 parser.add_argument("-odb", "--outfile-db", dest="outfile_db", default="predict.db", help="""
         The path for the outfile, the sqlite db with the results.
-""")
-parser.add_argument("-ol", "--outfile-log", dest="outfile_summary", default="predict.log", help="""
-        The path for the log, a text file.
 """)
 parser.add_argument("-m", "--models", dest="models_path", default="./models", help="""
         The path for models folder, default is ./models .
@@ -62,9 +59,6 @@ if len(df) < 1:
     print("The csv does not contain any rows.")
     quit()
 
-# string for the final summary file
-summary_s = ""
-
 #################################################
 
 
@@ -72,9 +66,6 @@ summary_s = ""
 
 
 #################################################
-
-# string for the final summary file
-summary_s = ""
 
 fastballs = ["FF", "SI"]
 offspeeds = ["FC", "CH", "FS", "FO", "SC"]
@@ -328,7 +319,6 @@ to_calculate = ["pitching", "location", "stuff"]
 #################################################
 
 for tc in to_calculate:
-    summary_s += ("\n" + tc + "\n")
     dftc = df_groups
 
     for s in seasons:
@@ -341,7 +331,6 @@ for tc in to_calculate:
 
         for l in range(len(dftc)):
             print(f"[{dt.datetime.now()}] Making predictions of {tc} for {categories[l]} for {s} season")
-            summary_s += (categories[l] + "\n")
 
             regressor_ml = []
 
@@ -652,5 +641,3 @@ location_plus.to_sql('location_plus', conn, if_exists='append', index=True, inde
 stuff_plus.to_sql('stuff_plus', conn, if_exists='append', index=True, index_label='stuff_id')
 pitching_plus.to_sql('pitching_plus', conn, if_exists='append', index=True, index_label='pitching_id')
 
-with open(args.outfile_summary, "w") as text_file:
-    text_file.write(summary_s)
