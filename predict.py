@@ -336,10 +336,11 @@ for tc in to_calculate:
 
         for l in range(len(dftc)):
             dfs.append(dftc[l][dftc[l]['season'] == s])
+            dfs[l] = dfs[l].reset_index()
 
 
         for l in range(len(dftc)):
-            print(f"[{dt.datetime.now()}] Making predictions of {tc} for {categories[l]}")
+            print(f"[{dt.datetime.now()}] Making predictions of {tc} for {categories[l]} for {s} season")
             summary_s += (categories[l] + "\n")
 
             regressor_ml = []
@@ -400,7 +401,7 @@ for tc in to_calculate:
                 y.pop(i)
                 category.pop(i)
 
-            dfs[l].drop(to_drop, inplace=True)
+            dfs[l] = dfs[l].drop(to_drop)
 
         #################################################
 
@@ -429,7 +430,7 @@ for tc in to_calculate:
 
         #################################################
 
-        print(f"[{dt.datetime.now()}] Calculating {tc} plus")
+        print(f"[{dt.datetime.now()}] Calculating {tc} plus for {s} season")
 
         for id in pitcher_ids:
             to_append = [
