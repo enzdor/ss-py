@@ -6,6 +6,7 @@ import sys
 import argparse
 import pickle
 import gc
+import math
 
 #################################################
 
@@ -53,6 +54,7 @@ if len(args.input_file_path) < 1:
     quit()
 
 print(f"[{dt.datetime.now()}] Loading data from {args.input_file_path}")
+
 df = pd.read_csv(args.input_file_path)
 
 if len(df) < 1:
@@ -62,7 +64,9 @@ if len(df) < 1:
 #################################################
 
 
-    # creating df for player stuff data
+    # creating df for pitchers stuff location
+    # pitching stuff_regressors and different 
+    # pitch type groups
 
 
 #################################################
@@ -99,6 +103,18 @@ df['c12'] = [1 if (x == 1 and y == 2) else 0 for x, y in zip(df['balls'], df['st
 df['c22'] = [1 if (x == 2 and y == 2) else 0 for x, y in zip(df['balls'], df['strikes'])]
 df['c32'] = [1 if (x == 3 and y == 2) else 0 for x, y in zip(df['balls'], df['strikes'])]
 
+y0 = 50
+yf = 17/12
+
+df['vy_f'] = [-math.sqrt(x * x - (2 * y * (y0 - yf))) for x, y in zip(df['vy0'], df['ay'])]
+df['t'] = [(x - y) / z for x, y, z in zip(df['vy_f'], df['vy0'], df['ay'])]
+df['vz_f'] = [x + (y * z) for x, y, z in zip(df['vz0'], df['az'], df['t'])]
+df['vx_f'] = [x + (y * z) for x, y, z in zip(df['vx0'], df['ax'], df['t'])]
+
+# vertical and horizontal approach angle
+
+df['vaa'] = [-math.atan(x / y) * 180 / math.pi for x, y in zip(df['vz_f'], df['vy_f'])]
+df['haa'] = [-math.atan(x / y) * 180 / math.pi for x, y in zip(df['vx_f'], df['vy_f'])]
 
 season = []
 for d in df['game_date']:
@@ -110,7 +126,6 @@ pitcher_ids = list(df['pitcher'].unique())
 pitcher_names = []
 pitcher_handedness = []
 pts = ["FF", "SI", "FC", "CH", "FS", "FO", "SC", "CU", "KC", "CS", "SL", "ST", "SV", "KN"]
-
 
 stuff_plus = pd.DataFrame({
     'season': pd.Series(dtype = "int"),
@@ -253,7 +268,7 @@ stuff_regressors = pd.DataFrame({
 
 
     # save average for each regressor for each
-    # pitcher
+    # pitcher and pitch types
 
 
 #################################################
@@ -318,12 +333,14 @@ to_calculate = ["pitching", "location", "stuff"]
 
 #################################################
 
+# for pitching location and stuff
 for tc in to_calculate:
     dftc = df_groups
 
     for s in seasons:
         dfs = []
 
+        # for each pitch type group
         for l in range(len(dftc)):
             dfs.append(dftc[l][dftc[l]['season'] == s])
             dfs[l] = dfs[l].reset_index()
@@ -332,27 +349,25 @@ for tc in to_calculate:
         for l in range(len(dftc)):
             print(f"[{dt.datetime.now()}] Making predictions of {tc} for {categories[l]} for {s} season")
 
+            regs_stuff = ['release_extension', 'spin_axis', 'release_spin_rate', 'az', 'ay', 
+                        'ax', 'vz0', 'vy0', 'vx0', 'pfx_z', 'pfx_x', 'release_pos_z', 
+                        'release_pos_y', 'release_pos_x', 'release_speed', 'vaa', 'haa']
+            regs_location = ['c32', 'c22', 'c12', 'c02', 'c31', 'c21', 'c11', 'c01', 'c30', 
+                        'c20', 'c10', 'c00', 'plate_z', 'plate_x', ]
             regressor_ml = []
 
             if tc == "stuff":
-                regs = ['release_extension', 'spin_axis', 'release_spin_rate', 'az', 'ay', 
-                        'ax', 'vz0', 'vy0', 'vx0', 'pfx_z', 'pfx_x', 'release_pos_z', 
-                        'release_pos_y', 'release_pos_x', 'release_speed']
+                regs = regs_stuff
                 for r in regs:
                     regressor_ml.append(dfs[l][r].to_list())
 
             elif tc == "location":
-                regs = ['c32', 'c22', 'c12', 'c02', 'c31', 'c21', 'c11', 'c01', 'c30', 
-                        'c20', 'c10', 'c00', 'plate_z', 'plate_x', ]
+                regs = regs_location
                 for r in regs:
                     regressor_ml.append(dfs[l][r].to_list())
 
             elif tc == "pitching":
-                regs = ['c32', 'c22', 'c12', 'c02', 'c31', 'c21', 'c11', 'c01', 'c30', 
-                        'c20', 'c10', 'c00', 'plate_z', 'plate_x', 'release_extension', 
-                        'spin_axis', 'release_spin_rate', 'az', 'ay', 'ax', 'vz0', 'vy0', 
-                        'vx0', 'pfx_z', 'pfx_x', 'release_pos_z', 'release_pos_y', 
-                        'release_pos_x', 'release_speed', ]
+                regs = regs_stuff + regs_location
                 for r in regs:
                     regressor_ml.append(dfs[l][r].to_list())
 
@@ -409,7 +424,6 @@ for tc in to_calculate:
 
             dfs[l]['x_rv'] = loaded_automl.predict(X)
 
-
         #################################################
 
 
@@ -422,20 +436,25 @@ for tc in to_calculate:
         print(f"[{dt.datetime.now()}] Calculating {tc} plus for {s} season")
 
         for id in pitcher_ids:
+            # list with equal format to stuff plus object
             to_append = [
                 s, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, id,
             ]
             n = 0
 
+            # for each pitch type group (fastballs offspeed and breaking balls)
             for l in range(len(dfs)):
                 df_p = dfs[l][dfs[l]['pitcher'] == id]
 
                 if len(df_p) > 0:
                     n += len(df_p)
+
+                    # for each pitch type in pitch type groups (for fastballs FF and SI)
                     for pitch_type in categories_types[l]:
                         df_p_p = df_p[df_p['pitch_type'] == pitch_type]
 
+                        # if he has thrown this pitch
                         if len(df_p_p) > 0:
                             ind_x = list(globals()[tc + '_plus'].columns).index(pitch_type + '_avg_x_rv100')
                             ind_n = list(globals()[tc + '_plus'].columns).index(pitch_type + '_n')
@@ -449,10 +468,12 @@ for tc in to_calculate:
                             to_append[ind_n] = len(df_p_p)
                             to_append[ind_N] += len(df_p_p)
 
+                            # add stuff plus to stuff regressors
                             stuff_regressors.loc[stuff_regressors[(stuff_regressors['pitch_type'] == pitch_type) & \
                                     (stuff_regressors['pitcher_id'] == id) & (stuff_regressors['season'] == s)].index, 
                                                  'stuff_plus'] = avg_x_rv_v_league
 
+            # concat list to stuff location or pitching plus dataframe
             if n > 0:
                 globals()[tc + '_plus'] = pd.concat([pd.DataFrame([to_append], columns = globals()[tc + '_plus'].columns), 
                                                      globals()[tc + '_plus']], ignore_index=True)
@@ -479,13 +500,11 @@ for tc in to_calculate:
 
 
     # transfer results to sqlite db
-    # new for production and test for dev
 
 
 #################################################
 
 print(f"[{dt.datetime.now()}] Exporting to sqlite")
-# conn = sqlite3.connect('new.db')
 conn = sqlite3.connect(args.outfile_db)
 c = conn.cursor()
 

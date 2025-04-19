@@ -4,6 +4,7 @@ import sys
 import os
 import argparse
 import pickle
+import math
 from flaml import AutoML
 from sklearn.model_selection import train_test_split
 
@@ -100,6 +101,18 @@ df['c12'] = [1 if (x == 1 and y == 2) else 0 for x, y in zip(df['balls'], df['st
 df['c22'] = [1 if (x == 2 and y == 2) else 0 for x, y in zip(df['balls'], df['strikes'])]
 df['c32'] = [1 if (x == 3 and y == 2) else 0 for x, y in zip(df['balls'], df['strikes'])]
 
+y0 = 50
+yf = 17/12
+
+df['vy_f'] = [-math.sqrt(x * x - (2 * y * (y0 - yf))) for x, y in zip(df['vy0'], df['ay'])]
+df['t'] = [(x - y) / z for x, y, z in zip(df['vy_f'], df['vy0'], df['ay'])]
+df['vz_f'] = [x + (y * z) for x, y, z in zip(df['vz0'], df['az'], df['t'])]
+df['vx_f'] = [x + (y * z) for x, y, z in zip(df['vx0'], df['ax'], df['t'])]
+
+# vertical and horizontal approach angle
+
+df['vaa'] = [-math.atan(x / y) * 180 / math.pi for x, y in zip(df['vz_f'], df['vy_f'])]
+df['haa'] = [-math.atan(x / y) * 180 / math.pi for x, y in zip(df['vx_f'], df['vy_f'])]
 
 #################################################
 
@@ -128,76 +141,36 @@ to_calculate = ["pitching", "location", "stuff"]
 
 #################################################
 
+# for pitching location and stuff
 for tc in to_calculate:
     summary_s += ("\n" + tc + "\n")
     dfs = df_groups
 
+    # for each pitch type group
     for l in range(len(dfs)):
         summary_s += (categories[l] + "\n")
+        regs_stuff = ['release_extension', 'spin_axis', 'release_spin_rate', 'az', 'ay', 
+                    'ax', 'vz0', 'vy0', 'vx0', 'pfx_z', 'pfx_x', 'release_pos_z', 
+                    'release_pos_y', 'release_pos_x', 'release_speed', 'vaa', 'haa']
+        regs_location = ['c32', 'c22', 'c12', 'c02', 'c31', 'c21', 'c11', 'c01', 'c30', 
+                    'c20', 'c10', 'c00', 'plate_z', 'plate_x', ]
 
         regressor_ml = []
 
         if tc == "stuff":
-            regressor_ml.append(dfs[l]['release_speed'].to_list())
-            regressor_ml.append(dfs[l]['release_pos_x'].to_list())
-            regressor_ml.append(dfs[l]['release_pos_y'].to_list())
-            regressor_ml.append(dfs[l]['release_pos_z'].to_list())
-            regressor_ml.append(dfs[l]['pfx_x'].to_list())
-            regressor_ml.append(dfs[l]['pfx_z'].to_list())
-            regressor_ml.append(dfs[l]['vx0'].to_list())
-            regressor_ml.append(dfs[l]['vy0'].to_list())
-            regressor_ml.append(dfs[l]['vz0'].to_list())
-            regressor_ml.append(dfs[l]['ax'].to_list())
-            regressor_ml.append(dfs[l]['ay'].to_list())
-            regressor_ml.append(dfs[l]['az'].to_list())
-            regressor_ml.append(dfs[l]['release_spin_rate'].to_list())
-            regressor_ml.append(dfs[l]['spin_axis'].to_list())
-            regressor_ml.append(dfs[l]['release_extension'].to_list())
+            regs = regs_stuff
+            for r in regs:
+                regressor_ml.append(dfs[l][r].to_list())
+
         elif tc == "location":
-            regressor_ml.append(dfs[l]['plate_x'].to_list())
-            regressor_ml.append(dfs[l]['plate_z'].to_list())
-            regressor_ml.append(dfs[l]['c00'].to_list())
-            regressor_ml.append(dfs[l]['c10'].to_list())
-            regressor_ml.append(dfs[l]['c20'].to_list())
-            regressor_ml.append(dfs[l]['c30'].to_list())
-            regressor_ml.append(dfs[l]['c01'].to_list())
-            regressor_ml.append(dfs[l]['c11'].to_list())
-            regressor_ml.append(dfs[l]['c21'].to_list())
-            regressor_ml.append(dfs[l]['c31'].to_list())
-            regressor_ml.append(dfs[l]['c02'].to_list())
-            regressor_ml.append(dfs[l]['c12'].to_list())
-            regressor_ml.append(dfs[l]['c22'].to_list())
-            regressor_ml.append(dfs[l]['c32'].to_list())
+            regs = regs_location
+            for r in regs:
+                regressor_ml.append(dfs[l][r].to_list())
+
         elif tc == "pitching":
-            regressor_ml.append(dfs[l]['release_speed'].to_list())
-            regressor_ml.append(dfs[l]['release_pos_x'].to_list())
-            regressor_ml.append(dfs[l]['release_pos_y'].to_list())
-            regressor_ml.append(dfs[l]['release_pos_z'].to_list())
-            regressor_ml.append(dfs[l]['pfx_x'].to_list())
-            regressor_ml.append(dfs[l]['pfx_z'].to_list())
-            regressor_ml.append(dfs[l]['vx0'].to_list())
-            regressor_ml.append(dfs[l]['vy0'].to_list())
-            regressor_ml.append(dfs[l]['vz0'].to_list())
-            regressor_ml.append(dfs[l]['ax'].to_list())
-            regressor_ml.append(dfs[l]['ay'].to_list())
-            regressor_ml.append(dfs[l]['az'].to_list())
-            regressor_ml.append(dfs[l]['release_spin_rate'].to_list())
-            regressor_ml.append(dfs[l]['spin_axis'].to_list())
-            regressor_ml.append(dfs[l]['release_extension'].to_list())
-            regressor_ml.append(dfs[l]['plate_x'].to_list())
-            regressor_ml.append(dfs[l]['plate_z'].to_list())
-            regressor_ml.append(dfs[l]['c00'].to_list())
-            regressor_ml.append(dfs[l]['c10'].to_list())
-            regressor_ml.append(dfs[l]['c20'].to_list())
-            regressor_ml.append(dfs[l]['c30'].to_list())
-            regressor_ml.append(dfs[l]['c01'].to_list())
-            regressor_ml.append(dfs[l]['c11'].to_list())
-            regressor_ml.append(dfs[l]['c21'].to_list())
-            regressor_ml.append(dfs[l]['c31'].to_list())
-            regressor_ml.append(dfs[l]['c02'].to_list())
-            regressor_ml.append(dfs[l]['c12'].to_list())
-            regressor_ml.append(dfs[l]['c22'].to_list())
-            regressor_ml.append(dfs[l]['c32'].to_list())
+            regs = regs_stuff + regs_location
+            for r in regs:
+                regressor_ml.append(dfs[l][r].to_list())
 
         X = []
         y = dfs[l]['delta_run_exp']
@@ -252,7 +225,7 @@ for tc in to_calculate:
     #################################################
 
 
-        # automl
+        # automl get models
 
 
     #################################################
@@ -271,6 +244,15 @@ for tc in to_calculate:
         r2 = automl.score(X_train, y_train)
         r2_test = automl.score(X_test, y_test)
 
+    #################################################
+
+
+        # write to summary variable important model 
+        # info
+
+
+    #################################################
+
         summary_s += str(automl.model.estimator) + "\n"
         summary_s += str(automl.model.estimator.feature_importances_) + "\n"
         summary_s += str(automl.feature_names_in_) + "\n"
@@ -281,13 +263,26 @@ for tc in to_calculate:
         summary_s += str(r2) + " r2 \n"
         summary_s += str(r2_test) + " r2 test\n\n"
 
-        # expected delta run expectancy
-        dfs[l]['x_rv'] = automl.predict(X_raw)
+    #################################################
+
+
+        # save models in path to folder given by
+        # user
+
+
+    #################################################
 
         os.makedirs(args.models_path, exist_ok=True)
         with open(f"{args.models_path}/{tc}_{categories[l]}.pkl", "wb") as f:
             pickle.dump(automl.model, f)
 
+#################################################
+
+
+    # write summary file
+
+
+#################################################
 
 with open(args.outfile_summary, "w") as text_file:
     text_file.write(summary_s)
