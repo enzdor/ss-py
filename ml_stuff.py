@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split
 #################################################
 
 parser = argparse.ArgumentParser(description="""
-        usage: python ml_stuff.py infile.csv [-h] [-odb data.db]
+        usage: python ml_stuff.py infile.csv [-h] 
                [-osum sum.txt] [-m ./models-folder]
 
         Script to get models in pickle format. The input data 
@@ -233,8 +233,8 @@ for tc in to_calculate:
         automl = AutoML()
 
         automl_settings = {
-            "time_budget" : 3600 * 3,
-            "metric" : "r2",
+            "time_budget" : 3600 * 1,
+            "metric" : "mse",
             "task" : "regression",
             "log_file_name" : "ml_stuff.log",
             "estimator_list": ["xgboost"],

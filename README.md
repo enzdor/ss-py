@@ -29,3 +29,8 @@ python predict.py yourdata.csv
 ```
 
 The output will be a database in sqlite format containing all of the results. If there already exists a database called `predict.db` you should either change its name or use `python predict.py -odb="mydb.db" yourdata.csv`. Always remember to chec if there already exists a database with the same its going to be output, if you don't change anything, the program will fail.
+
+## TODO
+
+- add script to create all graphs with matplotlib
+- add seam shifted wake (SSW) as spin differential?

@@ -424,6 +424,23 @@ for tc in to_calculate:
 
             dfs[l]['x_rv'] = loaded_automl.predict(X)
 
+            # create x_rv with 100 mean and x > 100 is percentage better
+            # than league
+
+            # make sure that there are no divisions with very small numbers
+            min_val = dfs[l]['x_rv'].min()
+            shift = abs(min_val) * 1.2
+            dfs[l]['x_rv_shifted'] = dfs[l]['x_rv'] + shift
+
+            # apply inverted normalization so that lower values reflect better than avg
+            dfs[l]['x_rv_norm_raw'] = dfs[l]['x_rv_shifted'].mean() / dfs[l]['x_rv_shifted']
+
+            for pt in categories_types[l]:
+                # scale to force mean = 100
+                idx = dfs[l]['pitch_type'] == pt
+                mean_norm = dfs[l].loc[idx, 'x_rv_norm_raw'].mean()
+                dfs[l].loc[idx, 'x_rv_norm_raw'] = 100 * dfs[l].loc[idx, 'x_rv_norm_raw']
+
         #################################################
 
 
@@ -460,18 +477,18 @@ for tc in to_calculate:
                             ind_n = list(globals()[tc + '_plus'].columns).index(pitch_type + '_n')
                             ind_N = list(globals()[tc + '_plus'].columns).index('N')
 
-                            avg_x_rv = df_p_p['x_rv'].mean()
-                            league_x_rv = dfs[l]['x_rv'].mean()
-                            avg_x_rv_v_league = round(((avg_x_rv - league_x_rv ) / league_x_rv * 100) + 100)
+                            avg_x_rv = round(df_p_p['x_rv_norm_raw'].mean(), 3)
 
-                            to_append[ind_x] = avg_x_rv_v_league
+                            to_append[ind_x] = avg_x_rv
                             to_append[ind_n] = len(df_p_p)
                             to_append[ind_N] += len(df_p_p)
 
                             # add stuff plus to stuff regressors
-                            stuff_regressors.loc[stuff_regressors[(stuff_regressors['pitch_type'] == pitch_type) & \
-                                    (stuff_regressors['pitcher_id'] == id) & (stuff_regressors['season'] == s)].index, 
-                                                 'stuff_plus'] = avg_x_rv_v_league
+                            if tc == 'stuff':
+                                idx = stuff_regressors[(stuff_regressors['pitch_type'] == pitch_type) & \
+                                    (stuff_regressors['pitcher_id'] == id) & \
+                                    (stuff_regressors['season'] == s)].index
+                                stuff_regressors.loc[idx ,'stuff_plus'] = np.int64(avg_x_rv)
 
             # concat list to stuff location or pitching plus dataframe
             if n > 0:
@@ -535,6 +552,8 @@ CREATE TABLE IF NOT EXISTS stuff_regressors(
     release_spin_rate INTEGER,
     spin_axis INTEGER,
     release_extension INTEGER,
+    vaa INTEGER,
+    haa INTEGER,
     stuff_plus INTEGER,
     FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
 );
