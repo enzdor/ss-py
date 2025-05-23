@@ -116,6 +116,40 @@ df['vx_f'] = [x + (y * z) for x, y, z in zip(df['vx0'], df['ax'], df['t'])]
 df['vaa'] = [-math.atan(x / y) * 180 / math.pi for x, y in zip(df['vz_f'], df['vy_f'])]
 df['haa'] = [-math.atan(x / y) * 180 / math.pi for x, y in zip(df['vx_f'], df['vy_f'])]
 
+# trying to find non magnus movement
+
+baseball_radius = 2.94 / 2
+
+df['spin_factor'] = [baseball_radius * x / y for x, y in zip(df['release_spin_rate'], df['vy0'])]
+df['lift_coefficient'] = [0.366 * (1 - math.exp(-6.041 * x[0])) for x in zip(df['spin_factor'])]
+
+df['total_transverse_mov_x'] = [1/2 * x * pow(y, 2) for x, y in zip(df['ax'], df['t'])]
+df['total_transverse_mov_z'] = [1/2 * x * pow(y, 2) for x, y in zip(df['az'], df['t'])]
+df['total_transverse_dir'] = [
+    (math.degrees(math.atan2(x, z)) + 360) % 360
+    for x, z in zip(df['total_transverse_mov_x'], df['total_transverse_mov_z'])
+]
+
+k_factor = 0.00544
+
+df['release_spin_rate_x'] = [x * math.sin(math.radians(y)) for x, y in zip(df['release_spin_rate'], df['spin_axis'])]
+df['release_spin_rate_z'] = [x * math.cos(math.radians(y)) for x, y in zip(df['release_spin_rate'], df['spin_axis'])]
+
+# df['magnus_transverse_dir'] = [math.degrees(-math.atan(x / y)) for x, y in zip(df['release_spin_rate_x'], df['release_spin_rate_z'])]
+df['magnus_transverse_dir'] = [(math.degrees(math.atan2(x, z)) + 360) % 360 for x, z in zip(df['release_spin_rate_x'], df['release_spin_rate_z'])]
+
+df['magnus_ax'] = [x * k_factor * pow(y, 2) * math.cos(math.radians(z)) for x, y, z in zip(df['lift_coefficient'], df['vy0'], df['magnus_transverse_dir'])]
+df['magnus_az'] = [x * k_factor * pow(y, 2) * math.sin(math.radians(z)) for x, y, z in zip(df['lift_coefficient'], df['vy0'], df['magnus_transverse_dir'])]
+
+df['axis_differential'] = [x - y for x, y in zip(df['total_transverse_dir'], df['magnus_transverse_dir'])]
+df['abs_axis_differential'] = [abs(x[0]) for x in zip(df['axis_differential'])]
+
+# efficient spin is only on the transverse axis, not gyrospin
+# df['spin_efficiency_approx'] = [(math.sqrt(pow(x, 2) + pow(y, 2))) / z for x, y, z in zip(df['release_spin_rate_z'], df['release_spin_rate_x'], df['release_spin_rate'])]
+
+# coors
+df['coors'] = [1 if x[0] == "COL" else 0 for x in zip(df['home_team'])]
+
 season = []
 for d in df['game_date']:
     season.append(dt.datetime.strptime(d, "%Y-%m-%d").year)
@@ -261,6 +295,10 @@ stuff_regressors = pd.DataFrame({
     'release_spin_rate': pd.Series(dtype = "float"),
     'spin_axis': pd.Series(dtype = "float"),
     'release_extension': pd.Series(dtype = "float"),
+    'vaa': pd.Series(dtype = "float"),
+    'haa': pd.Series(dtype = "float"),
+    'abs_axis_differential': pd.Series(dtype = "float"),
+    'coors': pd.Series(dtype = "float"),
     'stuff_plus': pd.Series(dtype = "int"),
 })
 
@@ -303,6 +341,10 @@ for id in pitcher_ids:
                         round(df_pitcher_pt['release_spin_rate'].mean(), 2),
                         round(df_pitcher_pt['spin_axis'].mean(), 2),
                         round(df_pitcher_pt['release_extension'].mean(), 2),
+                        round(df_pitcher_pt['vaa'].mean(), 2),
+                        round(df_pitcher_pt['haa'].mean(), 2),
+                        round(df_pitcher_pt['abs_axis_differential'].mean(), 2),
+                        round(df_pitcher_pt['coors'].mean(), 2),
                         -1,
                     ]], columns = stuff_regressors.columns), stuff_regressors], ignore_index=True)
 
@@ -351,7 +393,8 @@ for tc in to_calculate:
 
             regs_stuff = ['release_extension', 'spin_axis', 'release_spin_rate', 'az', 'ay', 
                         'ax', 'vz0', 'vy0', 'vx0', 'pfx_z', 'pfx_x', 'release_pos_z', 
-                        'release_pos_y', 'release_pos_x', 'release_speed', 'vaa', 'haa']
+                        'release_pos_y', 'release_pos_x', 'release_speed', 'vaa', 'haa',
+                        'abs_axis_differential', 'coors']
             regs_location = ['c32', 'c22', 'c12', 'c02', 'c31', 'c21', 'c11', 'c01', 'c30', 
                         'c20', 'c10', 'c00', 'plate_z', 'plate_x', ]
             regressor_ml = []
@@ -477,7 +520,8 @@ for tc in to_calculate:
                             ind_n = list(globals()[tc + '_plus'].columns).index(pitch_type + '_n')
                             ind_N = list(globals()[tc + '_plus'].columns).index('N')
 
-                            avg_x_rv = round(df_p_p['x_rv_norm_raw'].mean(), 3)
+                            avg_x_rv = df_p_p['x_rv_norm_raw'].mean()
+                            avg_x_rv = round(avg_x_rv, 3)
 
                             to_append[ind_x] = avg_x_rv
                             to_append[ind_n] = len(df_p_p)
@@ -554,6 +598,8 @@ CREATE TABLE IF NOT EXISTS stuff_regressors(
     release_extension INTEGER,
     vaa INTEGER,
     haa INTEGER,
+    abs_axis_differential INTEGER,
+    coors INTEGER,
     stuff_plus INTEGER,
     FOREIGN KEY(pitcher_id) REFERENCES pitchers(pitcher_id)
 );

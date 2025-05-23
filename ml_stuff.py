@@ -111,8 +111,42 @@ df['vx_f'] = [x + (y * z) for x, y, z in zip(df['vx0'], df['ax'], df['t'])]
 
 # vertical and horizontal approach angle
 
-df['vaa'] = [-math.atan(x / y) * 180 / math.pi for x, y in zip(df['vz_f'], df['vy_f'])]
-df['haa'] = [-math.atan(x / y) * 180 / math.pi for x, y in zip(df['vx_f'], df['vy_f'])]
+df['vaa'] = [math.degrees(-math.atan(x / y)) for x, y in zip(df['vz_f'], df['vy_f'])]
+df['haa'] = [math.degrees(-math.atan(x / y)) for x, y in zip(df['vx_f'], df['vy_f'])]
+
+# trying to find non magnus movement
+
+baseball_radius = 2.94 / 2
+
+df['spin_factor'] = [baseball_radius * x / y for x, y in zip(df['release_spin_rate'], df['vy0'])]
+df['lift_coefficient'] = [0.366 * (1 - math.exp(-6.041 * x[0])) for x in zip(df['spin_factor'])]
+
+df['total_transverse_mov_x'] = [1/2 * x * pow(y, 2) for x, y in zip(df['ax'], df['t'])]
+df['total_transverse_mov_z'] = [1/2 * x * pow(y, 2) for x, y in zip(df['az'], df['t'])]
+df['total_transverse_dir'] = [
+    (math.degrees(math.atan2(x, z)) + 360) % 360
+    for x, z in zip(df['total_transverse_mov_x'], df['total_transverse_mov_z'])
+]
+
+k_factor = 0.00544
+
+df['release_spin_rate_x'] = [x * math.sin(math.radians(y)) for x, y in zip(df['release_spin_rate'], df['spin_axis'])]
+df['release_spin_rate_z'] = [x * math.cos(math.radians(y)) for x, y in zip(df['release_spin_rate'], df['spin_axis'])]
+
+# df['magnus_transverse_dir'] = [math.degrees(-math.atan(x / y)) for x, y in zip(df['release_spin_rate_x'], df['release_spin_rate_z'])]
+df['magnus_transverse_dir'] = [(math.degrees(math.atan2(x, z)) + 360) % 360 for x, z in zip(df['release_spin_rate_x'], df['release_spin_rate_z'])]
+
+df['magnus_ax'] = [x * k_factor * pow(y, 2) * math.cos(math.radians(z)) for x, y, z in zip(df['lift_coefficient'], df['vy0'], df['magnus_transverse_dir'])]
+df['magnus_az'] = [x * k_factor * pow(y, 2) * math.sin(math.radians(z)) for x, y, z in zip(df['lift_coefficient'], df['vy0'], df['magnus_transverse_dir'])]
+
+df['axis_differential'] = [x - y for x, y in zip(df['total_transverse_dir'], df['magnus_transverse_dir'])]
+df['abs_axis_differential'] = [abs(x[0]) for x in zip(df['axis_differential'])]
+
+# efficient spin is only on the transverse axis, not gyrospin
+# df['spin_efficiency_approx'] = [(math.sqrt(pow(x, 2) + pow(y, 2))) / z for x, y, z in zip(df['release_spin_rate_z'], df['release_spin_rate_x'], df['release_spin_rate'])]
+
+# coors
+df['coors'] = [1 if x[0] == "COL" else 0 for x in zip(df['home_team'])]
 
 #################################################
 
@@ -151,7 +185,8 @@ for tc in to_calculate:
         summary_s += (categories[l] + "\n")
         regs_stuff = ['release_extension', 'spin_axis', 'release_spin_rate', 'az', 'ay', 
                     'ax', 'vz0', 'vy0', 'vx0', 'pfx_z', 'pfx_x', 'release_pos_z', 
-                    'release_pos_y', 'release_pos_x', 'release_speed', 'vaa', 'haa']
+                    'release_pos_y', 'release_pos_x', 'release_speed', 'vaa', 'haa',
+                    'abs_axis_differential', 'coors']
         regs_location = ['c32', 'c22', 'c12', 'c02', 'c31', 'c21', 'c11', 'c01', 'c30', 
                     'c20', 'c10', 'c00', 'plate_z', 'plate_x', ]
 
@@ -233,7 +268,7 @@ for tc in to_calculate:
         automl = AutoML()
 
         automl_settings = {
-            "time_budget" : 3600 * 1,
+            "time_budget" : 3600 * 2,
             "metric" : "mse",
             "task" : "regression",
             "log_file_name" : "ml_stuff.log",
