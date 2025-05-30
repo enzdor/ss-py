@@ -481,7 +481,6 @@ for tc in to_calculate:
             for pt in categories_types[l]:
                 # scale to force mean = 100
                 idx = dfs[l]['pitch_type'] == pt
-                mean_norm = dfs[l].loc[idx, 'x_rv_norm_raw'].mean()
                 dfs[l].loc[idx, 'x_rv_norm_raw'] = 100 * dfs[l].loc[idx, 'x_rv_norm_raw']
 
         #################################################
@@ -521,9 +520,8 @@ for tc in to_calculate:
                             ind_N = list(globals()[tc + '_plus'].columns).index('N')
 
                             avg_x_rv = df_p_p['x_rv_norm_raw'].mean()
-                            avg_x_rv = round(avg_x_rv, 3)
 
-                            to_append[ind_x] = avg_x_rv
+                            to_append[ind_x] = round(np.float64(avg_x_rv), 3)
                             to_append[ind_n] = len(df_p_p)
                             to_append[ind_N] += len(df_p_p)
 
@@ -532,12 +530,13 @@ for tc in to_calculate:
                                 idx = stuff_regressors[(stuff_regressors['pitch_type'] == pitch_type) & \
                                     (stuff_regressors['pitcher_id'] == id) & \
                                     (stuff_regressors['season'] == s)].index
-                                stuff_regressors.loc[idx ,'stuff_plus'] = np.int64(avg_x_rv)
+                                stuff_regressors.loc[idx ,'stuff_plus'] = round(np.float64(avg_x_rv), 3)
 
             # concat list to stuff location or pitching plus dataframe
             if n > 0:
                 globals()[tc + '_plus'] = pd.concat([pd.DataFrame([to_append], columns = globals()[tc + '_plus'].columns), 
                                                      globals()[tc + '_plus']], ignore_index=True)
+
 
 #################################################
 
@@ -556,6 +555,7 @@ for tc in to_calculate:
                 zip(globals()[tc + '_plus'][pt + '_avg_x_rv100'], globals()[tc + '_plus'][pt + '_n'], globals()[tc + '_plus']['N'])])
 
     globals()[tc + '_plus']['arsenal_avg'] = avg_ars
+
 
 #################################################
 

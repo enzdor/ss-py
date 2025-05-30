@@ -33,4 +33,4 @@ The output will be a database in sqlite format containing all of the results. If
 ## TODO
 
 - add script to create all graphs with matplotlib
-- add seam shifted wake (SSW) as spin differential?
+- export per season means with predict.py 
