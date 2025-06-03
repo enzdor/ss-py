@@ -33,4 +33,4 @@ The output will be a database in sqlite format containing all of the results. If
 ## TODO
 
 - add script to create all graphs with matplotlib
-- export per season means with predict.py 
+- export per season means for each pitch type with predict.py 

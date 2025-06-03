@@ -302,6 +302,30 @@ stuff_regressors = pd.DataFrame({
     'stuff_plus': pd.Series(dtype = "int"),
 })
 
+regressors_means = pd.DataFrame({
+    'pitch_type' : pd.Series(dtype = "str"),
+    'season' : pd.Series(dtype = "int"),
+    'release_speed': pd.Series(dtype = "float"),
+    'release_pos_x': pd.Series(dtype = "float"),
+    'release_pos_y': pd.Series(dtype = "float"),
+    'release_pos_z': pd.Series(dtype = "float"),
+    'pfx_x': pd.Series(dtype = "float"),
+    'pfx_z': pd.Series(dtype = "float"),
+    'vx0': pd.Series(dtype = "float"),
+    'vy0': pd.Series(dtype = "float"),
+    'vz0': pd.Series(dtype = "float"),
+    'ax': pd.Series(dtype = "float"),
+    'ay': pd.Series(dtype = "float"),
+    'az': pd.Series(dtype = "float"),
+    'release_spin_rate': pd.Series(dtype = "float"),
+    'spin_axis': pd.Series(dtype = "float"),
+    'release_extension': pd.Series(dtype = "float"),
+    'vaa': pd.Series(dtype = "float"),
+    'haa': pd.Series(dtype = "float"),
+    'abs_axis_differential': pd.Series(dtype = "float"),
+    'coors': pd.Series(dtype = "float"),
+})
+
 #################################################
 
 
@@ -556,6 +580,32 @@ for tc in to_calculate:
 
     globals()[tc + '_plus']['arsenal_avg'] = avg_ars
 
+#################################################
+
+
+    # calculate regressor averages for each 
+    # pitch type for each season
+
+
+#################################################
+
+all_pts = fastballs + breaking_balls + offspeeds
+
+for s in seasons:
+    df_s = df[df['season'] == s]
+    for pt in all_pts:
+        vals = []
+        cols = regressors_means.columns[1:]
+        vals.append(pt)
+
+        df_pt = df_s[df_s['pitch_type'] == pt]
+        for c in cols:
+            vals.append(round(df_pt[c].mean(), 3))
+
+        regressors_means = pd.concat([pd.DataFrame([vals], columns = regressors_means.columns),
+            regressors_means], ignore_index=True)
+
+regressors_means = regressors_means.dropna()
 
 #################################################
 
@@ -576,8 +626,33 @@ CREATE TABLE IF NOT EXISTS pitchers(
     p_throws TEXT
 );
 
+CREATE TABLE IF NOT EXISTS regressors_means(
+    regressors_mean_id INTEGER PRIMARY KEY,
+    pitch_type INTEGER NOT NULL,
+    season INTEGER NOT NULL,
+    release_speed INTEGER,
+    release_pos_x INTEGER,
+    release_pos_y INTEGER,
+    release_pos_z INTEGER,
+    pfx_x INTEGER,
+    pfx_z INTEGER,
+    vx0 INTEGER,
+    vy0 INTEGER,
+    vz0 INTEGER,
+    ax INTEGER,
+    ay INTEGER,
+    az INTEGER,
+    release_spin_rate INTEGER,
+    spin_axis INTEGER,
+    release_extension INTEGER,
+    vaa INTEGER,
+    haa INTEGER,
+    abs_axis_differential INTEGER,
+    coors INTEGER
+);
+
 CREATE TABLE IF NOT EXISTS stuff_regressors(
-    regressor_id INTEGER PRIMARY KEY,
+    stuff_regressor_id INTEGER PRIMARY KEY,
     pitcher_id INTEGER NOT NULL,
     pitch_type INTEGER NOT NULL,
     season INTEGER NOT NULL,
@@ -720,7 +795,8 @@ CREATE TABLE IF NOT EXISTS pitching_plus(
 conn.commit()
 
 pitchers.to_sql('pitchers', conn, if_exists='append', index=False)
-stuff_regressors.to_sql('stuff_regressors', conn, if_exists='append', index=True, index_label='regressor_id')
+regressors_means.to_sql('regressors_means', conn, if_exists='append', index=True, index_label='regressors_mean_id')
+stuff_regressors.to_sql('stuff_regressors', conn, if_exists='append', index=True, index_label='stuff_regressor_id')
 location_plus.to_sql('location_plus', conn, if_exists='append', index=True, index_label='location_id')
 stuff_plus.to_sql('stuff_plus', conn, if_exists='append', index=True, index_label='stuff_id')
 pitching_plus.to_sql('pitching_plus', conn, if_exists='append', index=True, index_label='pitching_id')
